@@ -1,0 +1,1856 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&display=swap" rel="stylesheet">
+<title>Hexacopter Endurance Model</title>
+
+<style>
+:root{
+  --ground:#E9EDEF; --surface:#FFFFFF; --surface-2:#F3F6F7; --surface-3:#E7EDEF;
+  --ink:#0F181D; --ink-2:#465A62; --ink-3:#71848C;
+  --rule:#D3DCE0; --rule-2:#B4C2C8;
+  --accent:#0E6E7F; --accent-ink:#0A5766; --accent-soft:rgba(14,110,127,.09);
+  --s1:#2C7FB8; --s2:#7D3C98; --s3:#B87A14; --s4:#7C8D94;
+  --good:#1F7A4D; --caution:#9A5A0B; --critical:#A83A2C;
+  --good-soft:rgba(31,122,77,.10); --caution-soft:rgba(154,90,11,.11); --critical-soft:rgba(168,58,44,.10);
+  --shadow:0 1px 2px rgba(15,24,29,.05), 0 8px 24px -16px rgba(15,24,29,.30);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono","SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#0C1317; --surface:#161D22; --surface-2:#1C252A; --surface-3:#232E34;
+    --ink:#E3EBEE; --ink-2:#9CAFB7; --ink-3:#75878F;
+    --rule:#28333A; --rule-2:#3A484F;
+    --accent:#3FA9BC; --accent-ink:#68C2D2; --accent-soft:rgba(63,169,188,.13);
+    --s1:#4A96CE; --s2:#8C52B2; --s3:#BC8620; --s4:#7E9299;
+    --good:#4CAF7D; --caution:#D09A3C; --critical:#DD7A6B;
+    --good-soft:rgba(76,175,125,.14); --caution-soft:rgba(208,154,60,.14); --critical-soft:rgba(221,122,107,.13);
+    --shadow:0 1px 2px rgba(0,0,0,.30), 0 8px 24px -16px rgba(0,0,0,.70);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1317; --surface:#161D22; --surface-2:#1C252A; --surface-3:#232E34;
+  --ink:#E3EBEE; --ink-2:#9CAFB7; --ink-3:#75878F;
+  --rule:#28333A; --rule-2:#3A484F;
+  --accent:#3FA9BC; --accent-ink:#68C2D2; --accent-soft:rgba(63,169,188,.13);
+  --s1:#4A96CE; --s2:#8C52B2; --s3:#BC8620; --s4:#7E9299;
+  --good:#4CAF7D; --caution:#D09A3C; --critical:#DD7A6B;
+  --good-soft:rgba(76,175,125,.14); --caution-soft:rgba(208,154,60,.14); --critical-soft:rgba(221,122,107,.13);
+  --shadow:0 1px 2px rgba(0,0,0,.30), 0 8px 24px -16px rgba(0,0,0,.70);
+}
+:root[data-theme="light"]{
+  --ground:#E9EDEF; --surface:#FFFFFF; --surface-2:#F3F6F7; --surface-3:#E7EDEF;
+  --ink:#0F181D; --ink-2:#465A62; --ink-3:#71848C;
+  --rule:#D3DCE0; --rule-2:#B4C2C8;
+  --accent:#0E6E7F; --accent-ink:#0A5766; --accent-soft:rgba(14,110,127,.09);
+  --s1:#2C7FB8; --s2:#7D3C98; --s3:#B87A14; --s4:#7C8D94;
+  --good:#1F7A4D; --caution:#9A5A0B; --critical:#A83A2C;
+  --good-soft:rgba(31,122,77,.10); --caution-soft:rgba(154,90,11,.11); --critical-soft:rgba(168,58,44,.10);
+  --shadow:0 1px 2px rgba(15,24,29,.05), 0 8px 24px -16px rgba(15,24,29,.30);
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;margin:0}
+.wrap{max-width:1800px;margin:0 auto;padding:32px clamp(16px,2.6vw,44px) 72px}
+@media(max-width:640px){.wrap{padding:20px 14px 56px}}
+
+h1,h2,h3{margin:0;text-wrap:balance;letter-spacing:-.018em;font-weight:640}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+/* ---------- masthead ---------- */
+.masthead{border-bottom:1px solid var(--rule-2);padding-bottom:22px;margin-bottom:26px}
+.mhead-top{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  padding-bottom:17px;margin-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brandmark{width:36px;height:36px;flex:none;color:var(--ink-2)}
+.bm-dots{fill:var(--accent)}   /* set here, not as a presentation attribute — var() is unreliable there */
+.brandname{font-size:17px;font-weight:680;letter-spacing:-.012em;line-height:1.1;color:var(--ink)}
+.branddiv{font-family:var(--mono);font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--ink-3);margin-top:3px}
+.docmeta{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink-3);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.docmeta .dot{width:4px;height:4px;border-radius:50%;background:var(--accent);flex:none}
+.pagefoot{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule-2);display:flex;
+  align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.pagefoot .brandname{font-size:13px}
+.pagefoot .brandmark{width:26px;height:26px}
+.pagefoot .fnote{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);text-align:right;line-height:1.6}
+.masthead h1{font-size:clamp(26px,3.4vw,38px);margin:10px 0 8px;line-height:1.1}
+.herohexa{display:flex;justify-content:center;margin:8px 0 0}
+.herohexa svg{width:min(320px,68%);height:auto;display:block}
+.hero-title{font-family:"Orbitron","Rajdhani","Segoe UI",ui-monospace,sans-serif;
+  font-weight:800;letter-spacing:.04em;color:var(--s1);text-align:center;
+  font-size:clamp(16px,2vw,23px);margin:12px auto 8px;max-width:26em;transform:translateX(6px)}
+.standfirst{color:var(--ink-2);max-width:66ch;font-size:15.5px}
+.standfirst strong{color:var(--ink);font-weight:620}
+.secnav{display:flex;flex-wrap:wrap;gap:5px 6px;margin-top:16px}
+.secnav a{font-family:var(--mono);font-size:10.5px;letter-spacing:.03em;color:var(--ink-2);text-decoration:none;
+  border:1px solid var(--rule-2);background:var(--surface);border-radius:3px;padding:4px 8px;white-space:nowrap}
+.secnav a:hover{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+.secnav a b{color:var(--ink-3);font-weight:600;margin-right:5px}
+.secnav a:hover b{color:var(--accent-ink)}
+.panel{scroll-margin-top:16px}
+
+/* ---------- layout ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 468px;gap:26px;align-items:start}
+@media(max-width:1080px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+/* The rail is taller than most viewports, so pinning it whole would strand its
+   lower half off-screen. Pin it, but let it scroll inside its own box. */
+.rail{position:sticky;top:18px;display:flex;flex-direction:column;gap:16px;
+  max-height:calc(100vh - 36px);overflow-y:auto;overscroll-behavior:contain}
+.rail::-webkit-scrollbar{width:9px}
+.rail::-webkit-scrollbar-thumb{background:var(--rule-2);border-radius:5px}
+.rail::-webkit-scrollbar-track{background:transparent}
+@media(max-width:1080px){.rail{position:static;order:-1;max-height:none;overflow:visible}}
+
+/* ---------- panel ---------- */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;box-shadow:var(--shadow)}
+.panel-head{display:flex;align-items:baseline;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.panel-head h2{font-size:14.5px;letter-spacing:-.005em}
+.marker{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent-ink);
+  background:var(--accent-soft);padding:3px 7px;border-radius:3px;letter-spacing:.06em;flex:none}
+.panel-head .note{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto;letter-spacing:.02em}
+.panel-body{padding:16px 18px}
+
+/* ---------- fields ---------- */
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px 16px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-2);display:flex;gap:6px;align-items:baseline}
+.field label .u{color:var(--ink-3);letter-spacing:.04em;text-transform:none}
+.inp{width:100%;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink);
+  background:var(--surface-2);border:1px solid var(--rule);border-bottom:2px solid var(--rule-2);
+  border-radius:4px;padding:7px 9px;font-variant-numeric:tabular-nums}
+.inp:hover{border-color:var(--rule-2)}
+.inp:focus{border-color:var(--accent);border-bottom-color:var(--accent);background:var(--surface)}
+select.inp{cursor:pointer}
+.hint{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);line-height:1.4}
+
+/* ---------- airspeed control ---------- */
+.speedbox{padding:16px 18px 18px;border-bottom:1px solid var(--rule);background:var(--surface-2);border-radius:6px 6px 0 0}
+.speedtop{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:2px}
+.speedtop .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2)}
+.speedval{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:30px;font-weight:650;
+  line-height:1;letter-spacing:-.02em}
+.speedval .u{font-size:13px;font-weight:500;color:var(--ink-3);margin-left:4px;letter-spacing:0}
+.speedval .kmh{display:block;font-size:11px;font-weight:500;color:var(--ink-3);margin-top:5px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent;margin:12px 0 10px;height:20px;display:block}
+input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:var(--surface-3);border:1px solid var(--rule)}
+input[type=range]::-moz-range-track{height:5px;border-radius:3px;background:var(--surface-3);border:1px solid var(--rule)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--accent);margin-top:-7px;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--accent);
+  border:2px solid var(--surface);box-shadow:0 0 0 1px var(--accent);cursor:pointer}
+/* ---------- mission sliders ---------- */
+#payslot{margin-top:12px;padding-top:2px;border-top:1px solid var(--rule)}
+#payslot .srow{border-bottom:none;padding-bottom:0}
+.slidershead{display:flex;align-items:baseline;gap:10px;padding:12px 18px 2px;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink);font-weight:650}
+.slidershead span{margin-left:auto;letter-spacing:.02em;text-transform:none;color:var(--ink-3);font-weight:400}
+.sliders{padding:2px 18px 14px}
+.srow{padding:10px 0 8px;border-bottom:1px solid var(--rule)}
+.srow:last-child{border-bottom:none}
+.stop{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.stop label{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)}
+.sval{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:650;color:var(--ink)}
+.sval .u{font-size:10.5px;font-weight:500;color:var(--ink-3);margin-left:3px}
+.srow input[type=range]{margin:7px 0 4px}
+.sfoot{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;line-height:1.5}
+.sfoot b{color:var(--ink-2);font-weight:650}
+.sfoot .warnx{color:var(--critical);font-weight:650}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.preset{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;padding:5px 9px;border-radius:3px;
+  border:1px solid var(--rule-2);background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.preset:hover{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+
+/* ---------- hero readout ---------- */
+.hero{padding:20px 18px 18px}
+.hero .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2)}
+.heronum{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:clamp(46px,8vw,60px);
+  font-weight:650;line-height:.95;letter-spacing:-.035em;margin:8px 0 0;display:flex;align-items:baseline;gap:8px}
+.heronum .u{font-size:18px;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.herorule{height:3px;background:var(--accent);width:56px;margin:14px 0 12px;border-radius:2px}
+.herosub{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);line-height:1.7;font-variant-numeric:tabular-nums}
+.herosub b{color:var(--ink);font-weight:640}
+
+/* ---------- three mission readouts ---------- */
+.mhead{display:flex;align-items:baseline;gap:10px;padding:14px 18px 0;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink);font-weight:650}
+.mhead span{margin-left:auto;letter-spacing:.02em;text-transform:none;color:var(--ink-3);font-weight:400}
+.mhead span b{color:var(--ink-2);font-weight:650}
+.missions{padding:10px 18px 16px;display:flex;flex-direction:column;gap:1px;background:var(--rule);
+  margin:10px 18px 16px;border:1px solid var(--rule);border-radius:6px;padding:0}
+.mrow{background:var(--surface);padding:11px 14px;display:grid;grid-template-columns:1fr auto;
+  gap:2px 12px;align-items:baseline}
+.mrow.primary{background:var(--accent-soft)}
+.mlab{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);font-weight:650}
+.mlab em{display:block;font-style:normal;font-size:10px;letter-spacing:.02em;text-transform:none;
+  color:var(--ink-3);font-weight:400;margin-top:2px}
+.mval{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:27px;font-weight:650;
+  line-height:1;letter-spacing:-.025em;grid-row:span 2;align-self:center;white-space:nowrap}
+.mval .u{font-size:12px;font-weight:500;color:var(--ink-3);margin-left:3px;letter-spacing:0}
+.mval.warn{color:var(--critical);font-size:16px}
+.mmeta{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;line-height:1.5}
+.mmeta b{color:var(--ink);font-weight:650}
+
+/* ---------- stat grid ---------- */
+.stats{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule)}
+.stat{padding:11px 18px;border-bottom:1px solid var(--rule)}
+.stat:nth-child(odd){border-right:1px solid var(--rule)}
+.stat .k{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.stat .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:16px;font-weight:640;margin-top:2px}
+.stat .v .u{font-size:11px;font-weight:500;color:var(--ink-3);margin-left:3px}
+
+/* ---------- budget bar ---------- */
+.budget{padding:15px 18px 17px}
+.budget .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-2);display:flex;justify-content:space-between;align-items:baseline}
+.budget .lab b{font-family:var(--mono);font-size:14px;color:var(--ink);letter-spacing:0;font-variant-numeric:tabular-nums}
+.bar{display:flex;gap:2px;height:16px;margin:10px 0 12px}
+.bar span{border-radius:1px;min-width:2px}
+.bar span:first-child{border-radius:3px 1px 1px 3px}
+.bar span:last-child{border-radius:1px 3px 3px 1px}
+.blegend{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px}
+.bl{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.bl i{width:9px;height:9px;border-radius:2px;flex:none}
+.bl b{color:var(--ink);font-weight:640;margin-left:auto}
+
+/* ---------- flags ---------- */
+.flags{display:flex;flex-direction:column;gap:1px;background:var(--rule);border-top:1px solid var(--rule)}
+.flag{display:flex;gap:9px;padding:9px 18px;background:var(--surface);font-size:12.5px;line-height:1.45;color:var(--ink-2);align-items:flex-start}
+.flag .chip{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.07em;padding:2px 6px;
+  border-radius:3px;flex:none;margin-top:2px;text-transform:uppercase}
+.flag.ok .chip{background:var(--good-soft);color:var(--good)}
+.flag.caution .chip{background:var(--caution-soft);color:var(--caution)}
+.flag.critical .chip{background:var(--critical-soft);color:var(--critical)}
+.flag b{color:var(--ink);font-weight:620}
+
+/* ---------- component table ---------- */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+  text-align:left;font-weight:600;padding:0 8px 8px;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+th.n,td.n{text-align:right}
+td{padding:3px 8px;border-bottom:1px solid var(--rule);vertical-align:middle}
+tbody tr:hover{background:var(--surface-2)}
+td.cat{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.03em;white-space:nowrap}
+td.name{color:var(--ink-2);min-width:150px}
+.cell{width:100%;background:transparent;border:1px solid transparent;border-radius:3px;padding:4px 6px;
+  font-family:var(--mono);font-size:12.5px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.cell:hover{border-color:var(--rule-2);background:var(--surface-2)}
+.cell:focus{border-color:var(--accent);background:var(--surface-2)}
+select.cell{text-align:left;cursor:pointer;font-size:11px;color:var(--ink-2)}
+td.derived{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);
+  background:var(--accent-soft);font-weight:600}
+tfoot td{font-family:var(--mono);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;
+  border-top:2px solid var(--rule-2);border-bottom:none;padding-top:9px}
+tfoot td.lbl{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.legendkey{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.legendkey i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* ---------- charts ---------- */
+.chartbox{position:relative;padding:6px 18px 16px}
+.chartsub{font-family:var(--mono);font-size:11px;color:var(--ink-3);padding:0 18px 10px;line-height:1.5}
+.chart{display:block;width:100%;overflow:visible}
+.cl{display:flex;gap:16px;flex-wrap:wrap;padding:0 18px 14px}
+.cli{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.cli i{width:10px;height:10px;border-radius:2px;flex:none}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--rule-2);
+  border-radius:5px;padding:9px 11px;font-family:var(--mono);font-size:11.5px;box-shadow:var(--shadow);
+  opacity:0;transition:opacity .1s;z-index:9;min-width:150px;font-variant-numeric:tabular-nums}
+.tip.on{opacity:1}
+.tip .th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+  padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid var(--rule)}
+.tip .tr{display:flex;align-items:center;gap:7px;line-height:1.7}
+.tip .tr i{width:8px;height:8px;border-radius:2px;flex:none}
+.tip .tr b{margin-left:auto;font-weight:650;color:var(--ink)}
+.tip .tr span{color:var(--ink-2)}
+.minis{display:grid;grid-template-columns:1fr 1fr;gap:0}
+@media(max-width:560px){.minis{grid-template-columns:1fr}}
+.mini{padding:14px 18px 12px}
+.mini:first-child{border-right:1px solid var(--rule)}
+@media(max-width:560px){.mini:first-child{border-right:none;border-bottom:1px solid var(--rule)}}
+.mini h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.mini .peak{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:3px;font-variant-numeric:tabular-nums}
+.mini .peak b{color:var(--ink);font-weight:650}
+
+/* ---------- site & wind ---------- */
+.rosewrap{padding:6px 18px 12px;display:flex;flex-direction:column;align-items:center;gap:9px}
+.rosewrap canvas{width:100%;max-width:230px;height:auto;display:block}
+.rosecap{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);text-align:center;line-height:1.5;font-variant-numeric:tabular-nums}
+.rosecap b{color:var(--ink-2);font-weight:650}
+.livebox{padding:0 18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.lvtoggle{display:flex;gap:10px;align-items:flex-start;cursor:pointer;padding:11px 12px;border-radius:5px;
+  border:1px solid var(--rule-2);background:var(--surface-2)}
+.lvtoggle:hover{border-color:var(--accent)}
+.lvtoggle input{margin:2px 0 0;width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:none}
+.lvtext{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lvtext b{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;font-weight:650;color:var(--ink)}
+.lvtext em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--ink-3);line-height:1.45}
+.lvtoggle.on{border-color:var(--accent);background:var(--accent-soft)}
+.windact{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+
+/* locked = value is coming from the API, not from you */
+.inp:disabled,input[type=range]:disabled{opacity:1;cursor:not-allowed}
+.inp:disabled{background:var(--surface-3);color:var(--ink-2);border-style:dashed}
+input[type=range]:disabled::-webkit-slider-thumb{background:var(--ink-3);box-shadow:0 0 0 1px var(--ink-3)}
+input[type=range]:disabled::-moz-range-thumb{background:var(--ink-3)}
+.field.locked label:after{content:"LIVE";font-size:8.5px;font-weight:700;letter-spacing:.1em;
+  color:var(--accent-ink);background:var(--accent-soft);padding:1px 4px;border-radius:2px;margin-left:auto}
+.srow.locked .stop label:after{content:"LIVE";font-size:8.5px;font-weight:700;letter-spacing:.1em;
+  color:var(--accent-ink);background:var(--accent-soft);padding:1px 4px;border-radius:2px;margin-left:6px}
+
+/* collapsible parameter groups */
+.grps{padding:2px 18px 16px;display:flex;flex-direction:column;gap:7px}
+.grp{border:1px solid var(--rule);border-radius:5px;background:var(--surface-2)}
+.grp[open]{border-color:var(--rule-2)}
+.grp summary{cursor:pointer;padding:9px 12px;font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+  font-weight:650;color:var(--ink);display:flex;align-items:baseline;gap:8px;list-style:none}
+.grp summary::-webkit-details-marker{display:none}
+.grp summary:before{content:"+";color:var(--accent-ink);font-weight:700;width:9px;flex:none}
+.grp[open] summary:before{content:"−"}
+.grp summary span{margin-left:auto;font-weight:400;letter-spacing:.02em;color:var(--ink-3);font-size:10px;text-align:right}
+.grp summary:hover{color:var(--accent-ink)}
+.grp .fields{padding:2px 12px 13px}
+.fields.compact{grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:11px 12px}
+.fields.compact .hint{font-size:9.5px}
+.battread{padding:0 12px 12px;font-size:11.5px;color:var(--ink-3);line-height:1.55}
+.battread b{color:var(--ink)}
+
+/* power calculation table */
+.pctab td.term{font-family:var(--mono);font-size:12px;color:var(--ink);white-space:nowrap}
+.pctab td.where{color:var(--ink-3);font-size:12px}
+.pctab td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600}
+.pctab tr.sub td.term{padding-left:20px;color:var(--ink-2);font-weight:400}
+.pctab tr.grp2 td{border-top:1px solid var(--rule-2)}
+.pctab td .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:7px;vertical-align:0}
+.wbtn{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;padding:8px 13px;border-radius:4px;
+  border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent-ink);cursor:pointer;font-weight:650}
+.wbtn:hover{background:var(--accent);color:var(--surface)}
+.wbtn:disabled{opacity:.5;cursor:default}
+.wstat{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);line-height:1.45}
+.wstat.bad{color:var(--caution)}
+.wstat.good{color:var(--good)}
+.wderived{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+.wd{background:var(--surface-2);padding:9px 11px}
+.wd .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.wd .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:650;margin-top:2px}
+.wd .v .u{font-size:10px;font-weight:500;color:var(--ink-3);margin-left:3px}
+.wd.hi .v{color:var(--accent-ink)}
+
+/* ---------- findings ---------- */
+.finding{display:grid;grid-template-columns:auto 1fr;gap:0 14px;padding:15px 18px;border-bottom:1px solid var(--rule)}
+.finding:last-child{border-bottom:none}
+.finding .sev{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  padding:3px 7px;border-radius:3px;height:fit-content;white-space:nowrap}
+.sev.material{background:var(--critical-soft);color:var(--critical)}
+.sev.moderate{background:var(--caution-soft);color:var(--caution)}
+.sev.minor{background:var(--surface-3);color:var(--ink-3)}
+.sev.confirm{background:var(--good-soft);color:var(--good)}
+.finding h3{font-size:14px;margin-bottom:5px;font-weight:620}
+.finding p{margin:0 0 6px;color:var(--ink-2);font-size:13.5px;max-width:74ch}
+.finding p:last-child{margin-bottom:0}
+.finding .num{font-family:var(--mono);font-size:12px;background:var(--surface-2);border:1px solid var(--rule);
+  border-radius:4px;padding:8px 11px;display:inline-block;margin-top:4px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.finding .num b{color:var(--ink);font-weight:650}
+code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1px solid var(--rule);
+  border-radius:3px;padding:1px 5px}
+.eq{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);border:1px solid var(--rule);
+  border-left:3px solid var(--accent);border-radius:0 4px 4px 0;padding:10px 13px;margin:10px 0;
+  overflow-x:auto;white-space:pre;line-height:1.7;color:var(--ink-2)}
+.eq b{color:var(--ink);font-weight:650}
+/* §7 findings and §8 prose are long-form; on a wide page a single 74ch column
+   leaves half the width empty, so they flow into balanced columns instead. */
+@media(min-width:1240px){
+  #findings{display:grid;grid-template-columns:1fr 1fr}
+  .finding{border-right:1px solid var(--rule)}
+  .finding:nth-child(2n){border-right:none}
+  #method{column-count:2;column-gap:46px}
+}
+@media(min-width:1620px){ #method{column-count:3;column-gap:44px} }
+#method>*{break-inside:avoid}
+#method h3:first-child{margin-top:0}
+@media(min-width:1240px){ #method p, #method ul{max-width:none} }
+
+.prose p{color:var(--ink-2);max-width:74ch;margin:0 0 11px;font-size:14px}
+.prose h3{font-size:13px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-2);margin:20px 0 8px;font-weight:600}
+.prose h3:first-child{margin-top:0}
+.prose ul{margin:0 0 11px;padding-left:20px;color:var(--ink-2);font-size:14px;max-width:74ch}
+.prose li{margin-bottom:5px}
+.srcs{font-size:12.5px;color:var(--ink-3)}
+.srcs a{color:var(--ink-2);text-decoration-color:var(--rule-2)}
+.srcs a:hover{color:var(--accent-ink)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="mhead-top">
+    <div class="brand">
+      <svg class="brandmark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+        <polygon points="20,4 33.86,12 33.86,28 20,36 6.14,28 6.14,12"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <g class="bm-dots">
+          <circle cx="20" cy="4" r="2.6"/><circle cx="33.86" cy="12" r="2.6"/>
+          <circle cx="33.86" cy="28" r="2.6"/><circle cx="20" cy="36" r="2.6"/>
+          <circle cx="6.14" cy="28" r="2.6"/><circle cx="6.14" cy="12" r="2.6"/>
+        </g>
+        <circle cx="20" cy="20" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      </svg>
+      <div class="brandtext">
+        <div class="brandname">Intelis Solution</div>
+        <div class="branddiv">Embedded Systems Group</div>
+      </div>
+    </div>
+    <div class="docmeta"><span>TAROT 680 Hexacopter</span><span class="dot"></span><span>Power &amp; Endurance Audit</span><span class="dot"></span><span>Rev A</span></div>
+  </div>
+  <div class="herohexa" id="herohexa" aria-hidden="true">
+    <svg viewBox="0 0 300 110" focusable="false">
+      <ellipse cx="150" cy="103" rx="30" ry="3.5" fill="var(--accent)">
+        <animate attributeName="opacity" values="0.14;0.30;0.14" dur="3.2s" repeatCount="indefinite"/>
+      </ellipse>
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="0 0;0 -4;0 0" dur="3.2s" repeatCount="indefinite"/>
+        <polygon points="150,39 164,47 164,63 150,71 136,63 136,47"
+          fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="150" cy="55" r="4.5" fill="var(--accent)"/>
+        <g stroke="var(--accent)" stroke-width="2" stroke-opacity=".75" stroke-linecap="round">
+          <line x1="166" y1="55" x2="205" y2="55"/>
+          <line x1="158" y1="68.9" x2="177.5" y2="102.6"/>
+          <line x1="142" y1="68.9" x2="122.5" y2="102.6"/>
+          <line x1="134" y1="55" x2="95" y2="55"/>
+          <line x1="142" y1="41.1" x2="122.5" y2="7.4"/>
+          <line x1="158" y1="41.1" x2="177.5" y2="7.4"/>
+        </g>
+        <g>
+          <animateTransform attributeName="transform" type="rotate" from="0 205 55" to="360 205 55" dur="0.8s" repeatCount="indefinite"/>
+          <circle cx="205" cy="55" r="12" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-opacity=".5" stroke-dasharray="5 4"/>
+          <path d="M205 55 L216 55" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/>
+        </g>
+        <g>
+          <animateTransform attributeName="transform" type="rotate" from="0 177.5 102.6" to="-360 177.5 102.6" dur="0.8s" repeatCount="indefinite"/>
+          <circle cx="177.5" cy="102.6" r="12" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-opacity=".5" stroke-dasharray="5 4"/>
+          <path d="M177.5 102.6 L188.5 102.6" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/>
+        </g>
+        <g>
+          <animateTransform attributeName="transform" type="rotate" from="0 122.5 102.6" to="360 122.5 102.6" dur="0.8s" repeatCount="indefinite"/>
+          <circle cx="122.5" cy="102.6" r="12" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-opacity=".5" stroke-dasharray="5 4"/>
+          <path d="M122.5 102.6 L133.5 102.6" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/>
+        </g>
+        <g>
+          <animateTransform attributeName="transform" type="rotate" from="0 95 55" to="-360 95 55" dur="0.8s" repeatCount="indefinite"/>
+          <circle cx="95" cy="55" r="12" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-opacity=".5" stroke-dasharray="5 4"/>
+          <path d="M95 55 L106 55" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/>
+        </g>
+        <g>
+          <animateTransform attributeName="transform" type="rotate" from="0 122.5 7.4" to="360 122.5 7.4" dur="0.8s" repeatCount="indefinite"/>
+          <circle cx="122.5" cy="7.4" r="12" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-opacity=".5" stroke-dasharray="5 4"/>
+          <path d="M122.5 7.4 L133.5 7.4" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/>
+        </g>
+        <g>
+          <animateTransform attributeName="transform" type="rotate" from="0 177.5 7.4" to="-360 177.5 7.4" dur="0.8s" repeatCount="indefinite"/>
+          <circle cx="177.5" cy="7.4" r="12" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-opacity=".5" stroke-dasharray="5 4"/>
+          <path d="M177.5 7.4 L188.5 7.4" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <h1 class="hero-title">Meritime Intelligent Drone Sim</h1>
+  <nav class="secnav" id="secnav" aria-label="Jump to section"></nav>
+</header>
+
+<div class="grid">
+
+  <!-- ================= LEFT: PARAMETERS ================= -->
+  <div class="stack">
+
+    <section class="panel">
+      <div class="panel-head"><span class="marker">§1</span><h2>Airframe &amp; avionics</h2>
+        <span class="note">shaded cells are derived</span></div>
+      <div class="panel-body">
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Category</th><th>Component</th><th class="n">Qty</th><th class="n">Unit&nbsp;g</th>
+              <th class="n">Mass&nbsp;g</th><th>Power rail</th><th class="n">Unit&nbsp;W</th><th class="n">Load&nbsp;W</th>
+            </tr></thead>
+            <tbody id="comprows"></tbody>
+            <tfoot><tr>
+              <td class="lbl" colspan="4">Dry mass &amp; continuous load</td>
+              <td class="n" id="tmass">—</td><td></td><td></td><td class="n" id="tpow">—</td>
+            </tr><tr>
+              <td class="lbl" colspan="4" id="tauwlbl">All-up mass · pack linked to capacity</td>
+              <td class="n" id="tauw">—</td><td></td><td></td><td></td>
+            </tr></tfoot>
+          </table>
+        </div>
+        <div class="legendkey">
+          <span><i style="background:var(--s4)"></i>Main bus — drawn at pack voltage</span>
+          <span><i style="background:var(--s3)"></i>5 V rail — passes through the BEC</span>
+          <span><i style="background:var(--s1)"></i>Propulsion — power comes from the aero model, not this table</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><span class="marker">§2</span><h2>Estimated power calculation</h2>
+        <span class="note" id="pcnote">at the condition set on the right</span></div>
+
+      <div class="budget">
+        <div class="lab"><span>Battery-side power budget</span><b id="ptot">—</b></div>
+        <div class="bar" id="bar"></div>
+        <div class="blegend" id="blegend"></div>
+      </div>
+
+      <div class="panel-body" style="padding-top:0">
+        <div class="tablewrap">
+          <table class="pctab">
+            <thead><tr><th>Term</th><th>Where it goes</th>
+              <th class="n">Climb</th><th class="n">Cruise</th><th class="n">Station</th><th class="n">Descend</th></tr></thead>
+            <tbody id="powerrows"></tbody>
+            <tfoot><tr><td class="lbl" colspan="2">Total from the pack, W</td>
+              <td class="n" id="pcClimb">—</td><td class="n" id="pcCruise">—</td>
+              <td class="n" id="pcStat">—</td><td class="n" id="pcDesc">—</td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="flags" id="flags"></div>
+    </section>
+
+  </div>
+
+  <!-- ================= RIGHT: READOUT ================= -->
+  <div class="rail">
+
+    <section class="panel">
+      <div class="slidershead first">Observed — live<span id="windnote">manual entry</span></div>
+      <div class="livebox">
+        <label class="lvtoggle" for="livewx">
+          <input type="checkbox" id="livewx">
+          <span class="lvtext"><b>Use live weather</b>
+            <em>Fetches wind and temperature for these coordinates and locks them. Uncheck to enter your own.</em></span>
+        </label>
+        <div class="windact">
+          <button class="wbtn" id="fetchwind">Refresh now</button>
+          <span class="wstat" id="wstat">Open-Meteo · no key required</span>
+        </div>
+        <div class="fields compact" id="f-wind"></div>
+      </div>
+      <div class="rosewrap">
+        <canvas id="rose" width="560" height="560" role="img"
+          aria-label="Compass rose showing wind direction relative to the planned flight track. Drag to set the flight track bearing."></canvas>
+        <div class="rosecap" id="rosecap"></div>
+      </div>
+      <div class="livebox" style="padding-top:0"><div class="wderived" id="wderived"></div></div>
+
+      <div class="mhead">Flight time <span>to reserve · <b id="reserveNote">—</b></span></div>
+      <div class="missions" id="missions"></div>
+
+      <div class="slidershead">Commanded — you set these<span>every move re-flies the model</span></div>
+      <div class="speedbox">
+        <div class="speedtop">
+          <span class="lab">Drone's speed through the air</span>
+          <span class="speedval" id="vout">0<span class="u">m/s</span><span class="kmh" id="vkmh">0 km/h</span></span>
+        </div>
+        <input type="range" id="vslider" min="0" max="25" step="0.5" value="0" aria-label="Airspeed in metres per second — the drone's speed through the air">
+        <div class="presets" id="presets"></div>
+        <div id="windspeedslot"></div>
+        <div id="payslot"></div>
+      </div>
+      <div class="sliders" id="windsliders"></div>
+      <div class="sliders" id="msliders"></div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="slidershead">Aircraft &amp; environment<span>rarely changed</span></div>
+      <div class="grps">
+        <details class="grp"><summary>Rotors &amp; drivetrain<span>momentum theory + figure of merit</span></summary>
+          <div class="fields compact" id="f-rotor"></div></details>
+        <details class="grp"><summary>Airframe drag<span>sets the cost of speed</span></summary>
+          <div class="fields compact" id="f-drag"></div></details>
+        <details class="grp"><summary>Battery<span>mass tracks capacity</span></summary>
+          <div class="fields compact" id="f-batt"></div>
+          <div class="battread" id="batt-readout"></div></details>
+        <details class="grp"><summary>Atmosphere &amp; flight condition<span></span></summary>
+          <div class="fields compact" id="f-cond"></div></details>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ================= CHARTS ================= -->
+<div class="stack" style="margin-top:22px">
+
+  <section class="panel">
+    <div class="panel-head"><span class="marker">§3</span><h2>Power against airspeed</h2>
+      <span class="note" id="chartnote"></span></div>
+    <p class="chartsub">Each band is battery-side electrical power — drivetrain losses are folded into the propulsion bands proportionally, so the stack sums to the pack draw. The dip is real: in forward flight the rotors meet undisturbed air, so induced power falls faster than body drag rises.</p>
+    <div class="cl" id="legend1"></div>
+    <div class="chartbox"><svg class="chart" id="chart1" height="330"></svg><div class="tip" id="tip1"></div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><span class="marker">§4</span><h2>Mission profile — takeoff to landing</h2>
+      <span class="note" id="profnote"></span></div>
+    <p class="chartsub">One flight, end to end. Climb and descent energy come off the top, your time on station is protected next, and whatever is left buys transit — which the out-and-back formula turns into a radius. Drop the airspeed to zero and the transit legs vanish, leaving a pure hover mission: the same profile, degenerated.</p>
+    <div class="chartbox" style="padding-bottom:4px"><svg class="chart" id="chartAlt" height="150"></svg></div>
+    <div class="chartbox" style="padding-top:0"><svg class="chart" id="chartSoc" height="185"></svg></div>
+    <div class="panel-body" style="padding-top:4px">
+      <div class="tablewrap">
+        <table class="pctab">
+          <thead><tr><th>Phase</th><th>What happens</th><th class="n">TAS m/s</th><th class="n">Power W</th>
+            <th class="n">Time min</th><th class="n">Energy Wh</th><th class="n">Pack %</th></tr></thead>
+          <tbody id="phaserows"></tbody>
+          <tfoot><tr><td class="lbl" colspan="4">Takeoff to landing</td>
+            <td class="n" id="phTime">—</td><td class="n" id="phEnergy">—</td><td class="n" id="phPct">—</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><span class="marker">§5</span><h2>The battery trade the worksheet cannot see</h2>
+      <span class="note">pack mass linked to capacity</span></div>
+    <p class="chartsub">A bigger pack carries more energy and more weight. The worksheet holds motor current at 3.25 A regardless of mass, so it shows endurance rising in a straight line with capacity. With the feedback restored the curve bends over hard: the first 5 Ah past the fitted pack buys about 4 minutes, the next 5 buys 2, and past 30 Ah you are adding kilograms for seconds. The mathematical peak does exist, but it sits at an all-up mass this airframe cannot lift — the thrust margin runs out first, which is the constraint that should actually size the pack.</p>
+    <div class="chartbox"><svg class="chart" id="chart4" height="230"></svg><div class="tip" id="tip4"></div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><span class="marker">§6</span><h2>What payload costs</h2>
+      <span class="note" id="paynote"></span></div>
+    <p class="chartsub">Payload is not free and it is not linear either. Every gram must be held up by the same rotors, and hover power grows as mass<sup>1.5</sup>. The curve is steepest at the left, so the <em>first</em> grams are the expensive ones: on the stock build the first 100 g costs about 0.6 min, while the 100 g after 2 kg costs barely 0.2 — by then there is not much endurance left to lose. The wall on the right is thrust margin, not energy: past it the aircraft still has battery but no longer has the authority to fly safely.</p>
+    <div class="chartbox"><svg class="chart" id="chart5" height="230"></svg></div>
+  </section>
+
+  <!-- ================= AUDIT ================= -->
+  <section class="panel">
+    <div class="panel-head"><span class="marker">§7</span><h2>Audit of the original worksheet</h2>
+      <span class="note">9 findings</span></div>
+    <div id="findings"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><span class="marker">§8</span><h2>The model</h2></div>
+    <div class="panel-body prose" id="method"></div>
+  </section>
+
+  <footer class="pagefoot">
+    <div class="brand">
+      <svg class="brandmark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+        <polygon points="20,4 33.86,12 33.86,28 20,36 6.14,28 6.14,12"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <g class="bm-dots">
+          <circle cx="20" cy="4" r="2.6"/><circle cx="33.86" cy="12" r="2.6"/>
+          <circle cx="33.86" cy="28" r="2.6"/><circle cx="20" cy="36" r="2.6"/>
+          <circle cx="6.14" cy="28" r="2.6"/><circle cx="6.14" cy="12" r="2.6"/>
+        </g>
+        <circle cx="20" cy="20" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      </svg>
+      <div class="brandtext">
+        <div class="brandname">Intelis Solution</div>
+        <div class="branddiv">Embedded Systems Group</div>
+      </div>
+    </div>
+    <div class="fnote">TAROT 680 hexacopter · power &amp; endurance model, Rev A<br>
+      Calibrated against the measured 3.25 A / motor hover point. Bench data supersedes every assumption here.</div>
+  </footer>
+
+</div>
+</div>
+
+<script>
+"use strict";
+const G = 9.80665;
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const fmt = (v,d=1) => (!isFinite(v) ? "—" : v.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}));
+
+/* ---------------- state ---------------- */
+// rail: "none" | "main" (pack voltage) | "5v" (through BEC) | "prop" (power from aero model)
+const components = [
+  {cat:"Frame",       name:"TAROT 680 mm",                  qty:1, m:600,  rail:"none", w:0},
+  {cat:"Flight ctrl", name:"Pixhawk 6C",                    qty:1, m:59.3, rail:"5v",   w:0.75},
+  {cat:"Telemetry",   name:"SIYI HM30",                     qty:1, m:132,  rail:"main", w:11.99},
+  {cat:"Motor",       name:"SunnySky 380 KV",               qty:6, m:97,   rail:"prop", w:0},
+  {cat:"Propeller",   name:"1355",                          qty:6, m:18,   rail:"none", w:0},
+  {cat:"RC receiver", name:"RadioMaster XR4 Gemini ELRS",   qty:1, m:5,    rail:"5v",   w:0.75},
+  {cat:"ESC",         name:"40 A",                          qty:6, m:26,   rail:"none", w:0},
+  {cat:"PDB",         name:"PDB 200",                       qty:1, m:5,    rail:"none", w:0},
+  {cat:"PWM module",  name:"Holybro PWM EXT-8P",            qty:1, m:10,   rail:"none", w:0},
+  {cat:"Gimbal",      name:"3-axis Storm32",                qty:1, m:304,  rail:"main", w:10},
+  {cat:"Camera",      name:"RPi Camera Module 3",           qty:1, m:4,    rail:"5v",   w:0.5},
+  {cat:"SBC",         name:"Jetson Orin Nano",              qty:1, m:176,  rail:"5v",   w:25},
+  {cat:"Actuator",    name:"Linear actuator (duty-avg)",    qty:1, m:100,  rail:"main", w:0},
+  {cat:"Recovery",    name:"Floatation device",             qty:1, m:200,  rail:"none", w:0},
+  {cat:"Other",       name:"Wire, 3D printing",             qty:1, m:100,  rail:"none", w:0}
+];
+
+const S = {
+  payload:0,
+  nRotors:6, propDia:13.5, wheelbase:695, FM:0.60, kInd:1.15, hoverRPM:4300,
+  etaMotor:82, etaEsc:95, etaBec:88, tMax:1900,
+  cd:0.60, frontArea:0.055,
+  cells:6, cellV:3.70, capAh:10.0, whkg:171, linkMass:1, packMass:1296,
+  dod:80, reserve:10, packDerate:95, rInt:12, cRating:20,
+  airspeed:0, climb:2.5, alt:0, oat:15, liveWx:0,
+  // site & wind. windDir follows the meteorological convention: the bearing the
+  // wind blows FROM. track is the bearing the aircraft flies TOWARD.
+  lat:23.8103, lon:90.4125, windSpd:0, windDir:0, track:0, agl:60,
+  descent:2.0, station:5
+};
+let windMeta = {source:"manual", at:null, gust:null, temp:null};
+// Values the weather API owns. While live mode is on these are locked to the
+// fetched reading; switch it off to type your own.
+const LIVE_KEYS = ["windSpd","windDir","oat"];
+
+const SPECS = {
+  "f-rotor":[
+    {k:"nRotors",   l:"Rotors",            u:"n",     min:3,   max:12,  step:1},
+    {k:"propDia",   l:"Prop diameter",     u:"in",    min:5,   max:30,  step:0.5},
+    {k:"wheelbase", l:"Motor-to-motor",    u:"mm",    min:100, max:3000,step:5, h:"Tarot 680 Pro is 695 mm. Sets how close adjacent discs sit — see the rotor-spacing flag."},
+    {k:"FM",        l:"Figure of merit",   u:"0–1",   min:0.35,max:0.85,step:0.01, h:"Rotor efficiency vs. the momentum-theory ideal. 0.5–0.7 for hobby props; 0.60 reproduces the sheet's 430 W."},
+    {k:"kInd",      l:"Induced factor k",  u:"×",     min:1,   max:1.4, step:0.01, h:"Tip loss and non-uniform inflow. 1.15 is standard."},
+    {k:"hoverRPM",  l:"Hover RPM",         u:"rpm",   min:1000,max:12000,step:50,  h:"Sets tip speed for the advance-ratio term."},
+    {k:"etaMotor",  l:"Motor efficiency",  u:"%",     min:50,  max:95,  step:1},
+    {k:"etaEsc",    l:"ESC efficiency",    u:"%",     min:70,  max:99,  step:1},
+    {k:"etaBec",    l:"BEC efficiency",    u:"%",     min:60,  max:98,  step:1, h:"Loss converting pack voltage to the 5 V rail. The worksheet assumes 100%."},
+    {k:"tMax",      l:"Max thrust / motor",u:"g",     min:200, max:20000,step:50}
+  ],
+  "f-drag":[
+    {k:"cd",        l:"Drag coefficient",  u:"Cd",    min:0.2, max:1.6, step:0.05, h:"0.4 faired, 0.6–0.9 open frame with exposed arms and gimbal."},
+    {k:"frontArea", l:"Frontal area",      u:"m²",    min:0.005,max:0.5,step:0.005, h:"Body + battery + gimbal + arms, projected into the airflow."}
+  ],
+  "f-batt":[
+    {k:"cells",     l:"Cells in series",   u:"S",     min:2,   max:14,  step:1},
+    {k:"cellV",     l:"Nominal cell V",    u:"V",     min:3,   max:4,   step:0.05},
+    {k:"capAh",     l:"Capacity",          u:"Ah",    min:0.5, max:40,  step:0.1},
+    {k:"linkMass",  l:"Pack mass",         u:"",      sel:[[1,"Linked to capacity"],[0,"Fixed value"]]},
+    {k:"whkg",      l:"Energy density",    u:"Wh/kg", min:80,  max:300, step:1, h:"The fitted pack is 222 Wh / 1296 g = 171 Wh/kg.", dep:"linkMass", show:1},
+    {k:"packMass",  l:"Pack mass",         u:"g",     min:50,  max:20000,step:10, dep:"linkMass", show:0},
+    {k:"dod",       l:"Usable depth",      u:"%",     min:40,  max:100, step:1, h:"Fraction of nameplate you are willing to pull. 80% is the LiPo norm."},
+    {k:"reserve",   l:"Landing reserve",   u:"pts",   min:0,   max:40,  step:1, h:"Held back from the usable depth for approach and go-around."},
+    {k:"packDerate",l:"Rate/sag derate",   u:"%",     min:80,  max:100, step:1, h:"Nameplate Wh is measured at a gentle discharge. Real Wh to a 3.5 V/cell cutoff is lower."},
+    {k:"rInt",      l:"Pack resistance",   u:"mΩ",    min:0,   max:100, step:1, h:"Heats the pack instead of turning the props."},
+    {k:"cRating",   l:"Discharge rate",    u:"C",     min:1,   max:60,  step:1, h:"The pack's rated continuous discharge rate. The flight demands I/capacity C; when demand exceeds this rating, usable energy is derated to rating/demand and the flag turns critical."}
+  ],
+  "f-cond":[
+    {k:"alt",       l:"Altitude AMSL",     u:"m",     min:0,   max:4000,step:50},
+    {k:"oat",       l:"Air temperature",   u:"°C",    min:-30, max:55,  step:1},
+    {k:"climb",     l:"Climb rate",        u:"m/s",   min:0.2, max:8,   step:0.1, h:"Used for the takeoff leg only, not for the whole flight."},
+    {k:"descent",   l:"Descent rate",      u:"m/s",   min:0.2, max:6,   step:0.1, h:"A descending rotor recovers only part of the climb energy."},
+    {k:"payload",   l:"Extra payload",     u:"g",     min:0,   max:4000,step:10}
+  ],
+  "f-wind":[
+    {k:"lat",     l:"Latitude",       u:"°",    min:-90, max:90,  step:0.0001},
+    {k:"lon",     l:"Longitude",      u:"°",    min:-180,max:180, step:0.0001},
+    {k:"windSpd", l:"Wind at 10 m",   u:"m/s",  min:0,   max:30,  step:0.1},
+    {k:"windDir", l:"Wind from",      u:"°true",min:0,   max:360, step:1, h:"Meteorological convention — the bearing the wind blows from."},
+    {k:"track",   l:"Flight track",   u:"°true",min:0,   max:360, step:1, h:"The bearing you are flying toward."},
+    {k:"agl",     l:"Height AGL",     u:"m",    min:2,   max:400, step:5, h:"Wind is scaled from the 10 m reading by the 1/7 power law."}
+  ]
+};
+
+/* ---------------- physics ---------------- */
+/* Wind resolved to flight height, then split along and across the track.
+   The headwind component is the only part the endurance model needs. */
+function windSolve(){
+  const vAgl = S.windSpd*Math.pow(Math.max(S.agl,1)/10, 1/7);   // 1/7 power law
+  const rel  = (S.windDir - S.track)*Math.PI/180;                // wind-from vs track
+  return {vAgl, head: vAgl*Math.cos(rel), cross: vAgl*Math.sin(rel), rel};
+}
+
+function airDensity(altM, tempC){
+  const T0=288.15, L=0.0065, P0=101325, R=287.05;
+  const Tisa = T0 - L*altM;
+  const p = P0*Math.pow(Tisa/T0, G/(L*R));
+  return p/(R*(tempC+273.15));
+}
+
+function base(){
+  let dry=0, pMain=0, p5v=0;
+  for(const c of components){
+    dry += c.qty*c.m;
+    if(c.rail==="main") pMain += c.qty*c.w;
+    if(c.rail==="5v")   p5v   += c.qty*c.w;
+  }
+  dry = (dry + S.payload)/1000;                       // kg
+  const packV  = S.cells*S.cellV;
+  const packWh = S.capAh*packV;
+  const packMass = S.linkMass ? packWh/S.whkg : S.packMass/1000;
+  const mass = dry + packMass;
+  const rho = airDensity(S.alt, S.oat);
+  const R = S.propDia*0.0254/2;
+  const discA = Math.PI*R*R*S.nRotors;
+  const W = mass*G;
+  const viHover = Math.sqrt(W/(2*rho*discA));
+  const pIdeal  = W*viHover;                          // ideal induced power, hover
+  const pMech   = pIdeal/S.FM;                        // real mechanical, hover
+  const pIndH   = S.kInd*pIdeal;
+  const pProfH  = Math.max(pMech - pIndH, 0.05*pIdeal); // profile power at hover
+  const vTipH   = Math.PI*(S.propDia*0.0254)*S.hoverRPM/60;
+  // adjacent-rotor spacing: motors sit on a circle of radius wheelbase/2
+  const spacing = S.wheelbase*Math.sin(Math.PI/S.nRotors);   // mm, centre to centre
+  const propMM  = S.propDia*25.4;
+  const sD      = spacing/propMM;                            // spacing ratio s/D
+  const tipGap  = spacing - propMM;                          // mm between disc edges
+  const pAvion  = pMain + p5v/(S.etaBec/100);         // battery-side avionics
+  const eUse    = packWh*(S.packDerate/100)*Math.max(S.dod-S.reserve,0)/100;
+  const eFull   = packWh*(S.packDerate/100)*S.dod/100;
+  return {dry,packMass,mass,W,rho,discA,R,packV,packWh,viHover,pIdeal,pMech,pIndH,pProfH,
+          vTipH,pMain,p5v,pAvion,eUse,eFull,spacing,sD,tipGap};
+}
+
+// Shaft power split at a true airspeed V and vertical rate vz (+up, −down).
+// vz is per-phase: only the climb and descent legs carry it.
+function shaft(b, V, vz){
+  const f = S.cd*S.frontArea;                    // equivalent flat plate area
+  const D = 0.5*b.rho*f*V*V;                     // body drag
+  const T = Math.sqrt(b.W*b.W + D*D);            // thrust balances weight + drag
+  const th = Math.atan2(D, b.W);                 // pitch from level
+  const Vpar = V*Math.cos(th), Vperp = V*Math.sin(th);
+  // Glauert inflow: vi = T / (2 rho A sqrt(Vpar^2 + (Vperp+vi)^2))
+  let vi = b.viHover;
+  for(let i=0;i<160;i++){
+    const q = Math.sqrt(Vpar*Vpar + (Vperp+vi)*(Vperp+vi));
+    const next = T/(2*b.rho*b.discA*Math.max(q,1e-6));
+    vi += 0.3*(next-vi);
+  }
+  const pInd = S.kInd*T*vi;
+  const vTip = b.vTipH*Math.sqrt(T/b.W);         // T ∝ Ω²
+  const mu   = Vpar/Math.max(vTip,1e-6);
+  const pProf = b.pProfH*Math.pow(T/b.W,1.5)*(1 + 4.65*mu*mu);
+  const pPar  = D*V;
+  // climbing costs W·vz; descending returns some of it, but a rotor in its own
+  // descending wake recovers far less than it paid, so cap the credit at 45%.
+  const pClimb = vz>=0 ? b.W*vz : 0.45*b.W*vz;
+  return {pInd,pProf,pPar,pClimb,D,T,th,vi,mu,shaftTotal:Math.max(pInd+pProf+pPar+pClimb,1)};
+}
+
+function solve(b, V, vz){
+  vz = vz || 0;
+  const s = shaft(b, V, vz);
+  const eta = (S.etaMotor/100)*(S.etaEsc/100);
+  const scale = 1/eta;
+  const eInd=s.pInd*scale, eProf=s.pProf*scale, ePar=s.pPar*scale, eClimb=s.pClimb*scale;
+  const pProp = eInd+eProf+ePar+eClimb;
+  let irLoss=0, total=pProp+b.pAvion;
+  for(let i=0;i<4;i++){
+    const I = total/b.packV;
+    irLoss = I*I*(S.rInt/1000);
+    total = pProp + b.pAvion + irLoss;
+  }
+  const I = total/b.packV;
+  const cRate = I/S.capAh;                        // discharge rate, in C
+  const sag = cRate > S.cRating ? Math.min(S.cRating/cRate, 1) : 1;  // over-rating cuts usable Wh
+  const tHours = b.eUse*sag/total, tFull = b.eFull*sag/total;
+  const vg = Math.max(V - windSolve().head, 0);   // ground speed drives range, not endurance
+  return {V, eInd, eProf, ePar, eClimb, pProp, pAvion:b.pAvion, irLoss, total,
+          overhead:b.pAvion+irLoss, cRate, sag, tMin:tHours*60, tFullMin:tFull*60,
+          rangeKm:vg*tHours*3.6, vg, ...s};
+}
+
+/* Three ways to spend the same battery.
+
+   Hover here means holding a point over the ground, which in wind is NOT zero
+   airspeed — you must fly into the wind at exactly its speed to stay put.
+
+   Out-and-back: power depends on true airspeed, so it is identical on both legs
+   and total endurance t is unchanged. With ground speeds V−h out and V+h back,
+        t = d/(V−h) + d/(V+h) = 2dV/(V²−h²)   →   d = t(V²−h²)/(2V)
+   which collapses to the familiar half-of-range when h = 0, and to zero when the
+   headwind matches your airspeed. */
+function missions(b){
+  const w = windSolve();
+  const hoverTAS = w.vAgl;                       // station keeping costs wind speed
+  const hov = solve(b, hoverTAS);
+  const cru = solve(b, S.airspeed);
+  const V = S.airspeed, h = w.head;
+  const canReturn = V > Math.abs(h) + 1e-9 && V > 0;
+  const radiusKm = canReturn ? (cru.tMin*60)*(V*V - h*h)/(2*V)/1000 : 0;
+  const legOut = canReturn ? radiusKm*1000/(V-h)/60 : 0;   // minutes outbound
+  return {w, hoverTAS, hov, cru, V, h, canReturn, radiusKm, legOut};
+}
+
+/* A whole flight, takeoff to landing:
+     climb → outbound → on station → return → descend, with the reserve untouched.
+   Climb and descent energy come off the top; you tell it how long you need on
+   station; whatever energy is left buys transit, and the out-and-back formula
+   turns that transit time into a radius. Set airspeed to 0 and the transit legs
+   vanish, leaving a pure hover mission — the same profile, degenerated. */
+function profile(b){
+  const w = windSolve(), V = S.airspeed, h = w.head;
+  const vz = Math.max(S.climb, 0.2), vd = Math.max(S.descent, 0.2);
+  const tClimb = S.agl/vz/60, tDesc = S.agl/vd/60;             // minutes
+  const pClimb = solve(b, 0, vz), pDesc = solve(b, 0, -vd);
+  const pCruise = solve(b, V, 0), pStat = solve(b, w.vAgl, 0);
+  const eClimb = pClimb.total*tClimb/60, eDesc = pDesc.total*tDesc/60;   // Wh
+  const cRate = pCruise.total/b.packV/S.capAh;
+  const sag = cRate > S.cRating ? Math.min(S.cRating/cRate, 1) : 1;
+  const eAfterVert = b.eUse*sag - eClimb - eDesc;
+  const canReturn = V > Math.abs(h) + 1e-9 && V > 0;
+  let tStation = S.station, tOut = 0, tBack = 0, radiusKm = 0;
+  const feasible = eAfterVert >= pStat.total*S.station/60;
+  if(!feasible){
+    // the station time asked for does not fit — show what the battery actually allows
+    tStation = Math.max(eAfterVert/pStat.total*60, 0);
+  }else{
+    const eTransit = eAfterVert - pStat.total*S.station/60;
+    if(canReturn && eTransit > 0){
+      const tTransit = eTransit/pCruise.total*60;           // minutes, both legs together
+      radiusKm = (tTransit*60)*(V*V-h*h)/(2*V)/1000;
+      tOut = radiusKm*1000/(V-h)/60;
+      tBack = Math.max(tTransit - tOut, 0);
+    }else if(eTransit > 0){
+      tStation += eTransit/pStat.total*60;                  // nowhere to fly — loiter instead
+    }
+  }
+  const phases = [
+    {k:"climb",  name:"Climb",     t:tClimb, p:pClimb.total, tas:0,      sol:pClimb, alt:[0,S.agl]},
+    {k:"out",    name:"Outbound",  t:tOut,   p:pCruise.total, tas:V,     sol:pCruise, alt:[S.agl,S.agl]},
+    {k:"stat",   name:"On station",t:tStation, p:pStat.total, tas:w.vAgl, sol:pStat, alt:[S.agl,S.agl]},
+    {k:"back",   name:"Return",    t:tBack,  p:pCruise.total, tas:V,     sol:pCruise, alt:[S.agl,S.agl]},
+    {k:"desc",   name:"Descend",   t:tDesc,  p:pDesc.total,   tas:0,     sol:pDesc, alt:[S.agl,0]}
+  ];
+  const tTotal = phases.reduce((a,p)=>a+p.t,0);
+  const eTotal = phases.reduce((a,p)=>a+p.p*p.t/60,0);
+  return {phases,tTotal,eTotal,radiusKm,tOut,tBack,tStation,feasible,canReturn,
+          eClimb,eDesc,pClimb,pDesc,pCruise,pStat,w,V,h,vz,vd};
+}
+
+function sweepV(b, vmax=26, n=105){
+  const out=[];
+  const h = windSolve().head;
+  for(let i=0;i<=n;i++){
+    const d = solve(b, vmax*i/n), V = d.V;
+    d.radiusKm = (V > Math.abs(h) && V > 0) ? (d.tMin*60)*(V*V-h*h)/(2*V)/1000 : 0;
+    out.push(d);
+  }
+  return out;
+}
+
+/* ---------------- rendering: controls ---------------- */
+function buildTable(){
+  const railName={none:"—",main:"Main bus",["5v"]:"5 V rail",prop:"Propulsion"};
+  const railCol ={none:"var(--ink-3)",main:"var(--s4)",["5v"]:"var(--s3)",prop:"var(--s1)"};
+  $("comprows").innerHTML = components.map((c,i)=>`
+    <tr>
+      <td class="cat">${c.cat}</td>
+      <td class="name">${c.name}</td>
+      <td class="n"><input class="cell" type="number" min="0" step="1" value="${c.qty}" data-i="${i}" data-f="qty" aria-label="${c.name} quantity"></td>
+      <td class="n"><input class="cell" type="number" min="0" step="0.1" value="${c.m}" data-i="${i}" data-f="m" aria-label="${c.name} unit mass"></td>
+      <td class="n derived" id="cm${i}">—</td>
+      <td><select class="cell" data-i="${i}" data-f="rail" aria-label="${c.name} power rail" style="color:${railCol[c.rail]}">
+        ${Object.keys(railName).map(r=>`<option value="${r}"${r===c.rail?" selected":""}>${railName[r]}</option>`).join("")}
+      </select></td>
+      <td class="n"><input class="cell" type="number" min="0" step="0.05" value="${c.w}" data-i="${i}" data-f="w" ${c.rail==="prop"||c.rail==="none"?'disabled style="opacity:.35"':''} aria-label="${c.name} unit power"></td>
+      <td class="n derived" id="cw${i}">—</td>
+    </tr>`).join("");
+  $("comprows").addEventListener("input", e=>{
+    const t=e.target; if(!t.dataset.f) return;
+    const c=components[+t.dataset.i];
+    if(t.dataset.f==="rail"){ c.rail=t.value; buildTable(); }
+    else c[t.dataset.f] = parseFloat(t.value)||0;
+    render();
+  });
+}
+
+function buildFields(){
+  for(const [box,list] of Object.entries(SPECS)){
+    $(box).innerHTML = list.map(s=>{
+      const ctl = s.sel
+        ? `<select class="inp" data-k="${s.k}" id="i-${s.k}">${s.sel.map(([v,t])=>`<option value="${v}"${+S[s.k]===v?" selected":""}>${t}</option>`).join("")}</select>`
+        : `<input class="inp" type="number" id="i-${s.k}" data-k="${s.k}" min="${s.min}" max="${s.max}" step="${s.step}" value="${S[s.k]}" inputmode="decimal">`;
+      return `<div class="field" id="fw-${s.k}" ${s.dep?`data-dep="${s.dep}" data-show="${s.show}"`:""}>
+        <label for="i-${s.k}">${s.l}${s.u?`<span class="u">${s.u}</span>`:""}</label>
+        ${ctl}${s.h?`<span class="hint">${s.h}</span>`:""}</div>`;
+    }).join("");
+    $(box).addEventListener("input", e=>{
+      const k=e.target.dataset.k; if(!k) return;
+      const spec=list.find(x=>x.k===k);
+      let v=parseFloat(e.target.value);
+      if(!isFinite(v)) return;
+      if(spec && spec.min!==undefined) v=clamp(v,spec.min,spec.max);
+      S[k]=v; applyDeps(); render();
+    });
+  }
+  applyDeps();
+}
+function applyDeps(){
+  document.querySelectorAll("[data-dep]").forEach(el=>{
+    el.style.display = (+S[el.dataset.dep] === +el.dataset.show) ? "" : "none";
+  });
+}
+
+/* mission sliders — the variables you actually sweep when planning a flight.
+   They share state with the numeric fields in §1–§2 and the groups below, so both stay in step. */
+// grp decides which container the slider lands in: pay | wind | mission
+const MSLIDERS=[
+  {k:"payload", l:"Payload",         u:"g",    min:0,  max:4000, step:25,  grp:"pay"},
+  {k:"windSpd", l:"Wind at 10 m",    u:"m/s",  min:0,  max:25,   step:0.1, grp:"windspd"},
+  {k:"track",   l:"Flight track",    u:"°true",min:0,  max:360,  step:1,   grp:"wind"},
+  {k:"station", l:"Time on station", u:"min",  min:0,  max:40,   step:0.5, grp:"mission"},
+  {k:"agl",     l:"Working height",  u:"m AGL",min:5,  max:400,  step:5,   grp:"mission"},
+  {k:"capAh",   l:"Pack capacity",   u:"Ah",   min:1,  max:40,   step:0.5, grp:"mission"},
+  {k:"climb",   l:"Climb rate",      u:"m/s",  min:0.2,max:8,    step:0.1, grp:"mission"},
+  {k:"alt",     l:"Altitude AMSL",   u:"m",    min:0,  max:4000, step:50,  grp:"mission"}
+];
+function buildSliders(){
+  const row = s=>`
+    <div class="srow">
+      <div class="stop"><label for="s-${s.k}">${s.l}</label>
+        <span class="sval" id="sv-${s.k}">—<span class="u">${s.u}</span></span></div>
+      <input type="range" id="s-${s.k}" data-k="${s.k}" min="${s.min}" max="${s.max}" step="${s.step}"
+             value="${S[s.k]}" aria-label="${s.l} in ${s.u}">
+      <div class="sfoot" id="sf-${s.k}"></div>
+    </div>`;
+  const into = (id,grp)=>{ $(id).innerHTML = MSLIDERS.filter(s=>s.grp===grp).map(row).join(""); };
+  into("payslot","pay");        // rides at the top next to airspeed
+  into("windspeedslot","windspd"); // sits directly under the airspeed slider
+  into("windsliders","wind");   // sits with the rose and the live toggle
+  into("msliders","mission");
+  const onInput = e=>{
+    const k=e.target.dataset.k; if(!k) return;
+    S[k]=parseFloat(e.target.value); render();
+  };
+  ["payslot","windspeedslot","windsliders","msliders"].forEach(id=>$(id).addEventListener("input",onInput));
+}
+// push state back into every control that isn't currently being typed into
+function syncControls(){
+  for(const s of MSLIDERS){
+    const el=$("s-"+s.k);
+    if(el && el!==document.activeElement) el.value=clamp(S[s.k],s.min,s.max);
+    const v=$("sv-"+s.k);
+    if(v) v.innerHTML=`${fmt(S[s.k], s.step<1?1:0)}<span class="u">${s.u}</span>`;
+  }
+  document.querySelectorAll("#f-rotor [data-k],#f-drag [data-k],#f-batt [data-k],#f-cond [data-k],#f-wind [data-k]").forEach(el=>{
+    if(el!==document.activeElement) el.value=S[el.dataset.k];
+  });
+  // lock whatever the API owns while live mode is on
+  const live = !!S.liveWx;
+  document.querySelectorAll("[data-k]").forEach(el=>{
+    const owned = LIVE_KEYS.indexOf(el.dataset.k)>=0;
+    if(!owned) return;
+    el.disabled = live;
+    const host = el.closest(".field") || el.closest(".srow");
+    if(host) host.classList.toggle("locked", live);
+  });
+  const box=$("livewx"); if(box){ box.checked=live; box.closest(".lvtoggle").classList.toggle("on",live); }
+  const btn=$("fetchwind"); if(btn) btn.disabled = !live;
+}
+
+// live captions under each slider: what this variable is currently costing you
+function syncSliderFooters(b, r, payloadMax){
+  syncControls();
+  const at = over => {                       // endurance with one field overridden
+    const save={...S}; Object.assign(S,over);
+    const t=solve(base(), S.airspeed).tMin; Object.assign(S,save); return t;
+  };
+  const dP = at({payload:S.payload+100}) - r.tMin;
+  $("sf-payload").innerHTML = S.payload>payloadMax
+    ? `<span class="warnx">${fmt(S.payload-payloadMax,0)} g over the ${fmt(payloadMax,0)} g limit for T:W 2.0</span> · ${fmt(dP,2)} min per +100 g`
+    : `${fmt(dP,2)} min per +100 g · <b>${fmt(payloadMax-S.payload,0)} g</b> still available before T:W 2.0`;
+  $("sf-capAh").innerHTML = `pack <b>${fmt(b.packMass*1000,0)} g</b> · ${fmt(at({capAh:S.capAh+1})-r.tMin,2)} min per +1 Ah · draws <b>${fmt(r.cRate,1)} C</b> of ${S.cRating} C rating`;
+  $("batt-readout").innerHTML = r.sag < 1
+    ? `flight demands <b>${fmt(r.cRate,2)} C</b> against a <b>${S.cRating} C</b> discharge rate — over the rating, so usable energy is derated to <b>${fmt(100*r.sag,0)}%</b>.`
+    : `flight demands <b>${fmt(r.cRate,2)} C</b> against a <b>${S.cRating} C</b> discharge rate — inside the rating, no derate.`;
+  const w = windSolve();
+  $("sf-windSpd").innerHTML = S.windSpd===0 ? `still air · costs range, never endurance`
+    : `<b>${fmt(w.vAgl,1)} m/s</b> at ${fmt(S.agl,0)} m AGL · ground speed <b>${fmt(r.vg,1)} m/s</b>`;
+  $("sf-track").innerHTML = S.windSpd===0
+    ? `still air — the flight track has no effect until a wind speed is set`
+    : `${w.head>=0?"head":"tail"}wind <b>${fmt(Math.abs(w.head),1)}</b> · cross <b>${fmt(Math.abs(w.cross),1)} m/s</b> · range <b>${fmt(r.rangeKm,2)} km</b>`;
+  $("sf-climb").innerHTML = S.climb===0 ? `level flight`
+    : `${S.climb>0?"+":""}${fmt(b.W*S.climb,0)} W of shaft power to lift ${fmt(b.mass,2)} kg`;
+  $("sf-alt").innerHTML = `air density <b>${fmt(b.rho,3)} kg/m³</b> · ${fmt((b.rho/1.225-1)*100,1)}% vs sea-level ISA`;
+}
+
+function buildPresets(b){
+  const sw = sweepV(b);
+  const be = sw.reduce((a,x)=>x.total<a.total?x:a);
+  const br = sw.reduce((a,x)=>x.rangeKm>a.rangeKm?x:a);
+  $("presets").innerHTML =
+    `<button class="preset" data-v="0">Hover</button>`+
+    `<button class="preset" data-v="${be.V.toFixed(1)}">Best endurance · ${be.V.toFixed(1)}</button>`+
+    `<button class="preset" data-v="${br.V.toFixed(1)}">Best range · ${br.V.toFixed(1)}</button>`+
+    `<button class="preset" data-v="15">Transit · 15</button>`;
+  return {sw,be,br};
+}
+
+/* ---------------- rendering: readout ---------------- */
+function render(){
+  const b = base();
+  const {sw,be,br} = buildPresets(b);
+  const r = solve(b, S.airspeed);
+
+  // component table derived cells
+  components.forEach((c,i)=>{
+    $("cm"+i).textContent = fmt(c.qty*c.m,1);
+    const w = (c.rail==="main"||c.rail==="5v") ? c.qty*c.w : 0;
+    $("cw"+i).textContent = (c.rail==="prop") ? "model" : (c.rail==="none" ? "—" : fmt(w,2));
+  });
+  $("tmass").textContent = fmt(b.dry*1000 - S.payload,1)+" g";
+  $("tpow").textContent  = fmt(b.pMain+b.p5v,2)+" W";
+  $("tauwlbl").textContent = `All-up mass · pack ${S.linkMass?"linked to capacity":"fixed"}`;
+  $("tauw").textContent  = fmt(b.mass*1000,0)+" g";
+
+  // hero
+  $("vout").innerHTML = `${S.airspeed.toFixed(1)}<span class="u">m/s</span><span class="kmh">${(S.airspeed*3.6).toFixed(0)} km/h airspeed · ${(r.vg*3.6).toFixed(0)} km/h over the ground · wind ${(windSolve().vAgl*3.6).toFixed(0)} km/h</span>`;
+  const M = missions(b), P = profile(b);
+  $("reserveNote").textContent = `${S.dod}% depth − ${S.reserve} pt`;
+  const calm = M.hoverTAS < 0.05;
+  $("missions").innerHTML = `
+    <div class="mrow">
+      <div class="mlab">Hover<em>${calm?"holding a point in still air":"holding a point — flying "+fmt(M.hoverTAS,1)+" m/s into wind just to stay put"}</em></div>
+      <div class="mval">${fmt(M.hov.tMin,1)}<span class="u">min</span></div>
+      <div class="mmeta"><b>${fmt(M.hov.total,0)} W</b>${calm?"":
+        (M.hov.tMin>solve(b,0).tMin
+          ? ` · <b>${fmt(M.hov.tMin-solve(b,0).tMin,1)} min longer</b> than still air — the wind gives translational lift`
+          : ` · <b>${fmt(solve(b,0).tMin-M.hov.tMin,1)} min shorter</b> than still air`)}</div>
+    </div>
+    <div class="mrow primary">
+      <div class="mlab">Travelling<em>one way at ${fmt(S.airspeed,1)} m/s, ground speed ${fmt(r.vg,1)}</em></div>
+      <div class="mval">${fmt(r.tMin,1)}<span class="u">min</span></div>
+      <div class="mmeta"><b>${fmt(r.rangeKm,2)} km</b> covered over the ground · <b>${fmt(r.total,0)} W</b> · ${fmt(r.total/b.packV,1)} A</div>
+    </div>
+    <div class="mrow">
+      <div class="mlab">Navigating<em>out and back, after climb, station and descent — the §4 profile</em></div>
+      ${(P.canReturn && P.radiusKm>0)
+        ? `<div class="mval">${fmt(P.radiusKm,2)}<span class="u">km out</span></div>
+           <div class="mmeta"><b>${fmt(P.radiusKm*2,2)} km</b> flown · turn at <b>${fmt(P.tOut+P.phases[0].t,1)} min</b> · <b>${fmt(P.tTotal,1)} min</b> airborne${
+             Math.abs(P.h)>0.05?` · ${P.h>0?"into wind outbound":"downwind outbound"}`:""}</div>`
+        : `<div class="mval warn">${S.airspeed<=0?"no transit":!P.feasible?"station too long":"headwind too strong"}</div>
+           <div class="mmeta">${S.airspeed<=0?"Set an airspeed and the transit legs appear.":
+             !P.feasible?`${fmt(S.station,0)} min on station leaves nothing for transit.`:
+             `At ${fmt(S.airspeed,1)} m/s you cannot outrun a ${fmt(Math.abs(P.h),1)} m/s headwind — you would never come back.`}</div>`}
+    </div>`;
+
+  const tw = (S.tMax*S.nRotors/1000)/b.mass;
+  const hoverThrottle = (b.mass*1000/S.nRotors)/S.tMax*100;
+  // payload the airframe can still carry while holding T:W >= 2.0
+  const massCap = S.tMax*S.nRotors/1000/2.0;
+  const payloadMax = Math.max((massCap-(b.mass-S.payload/1000))*1000, 0);
+  syncSliderFooters(b, r, payloadMax);
+  const escA = r.pProp/S.nRotors/b.packV;
+  const cRate = (r.total/b.packV)/S.capAh;
+  $("stats").innerHTML = [
+    ["All-up mass", fmt(b.mass*1000,0), "g"],
+    ["Pack mass", fmt(b.packMass*1000,0), "g"],
+    ["Disc loading", fmt(b.W/b.discA,1), "N/m²"],
+    ["Hover power", fmt(solve(b,0).total,0), "W"],
+    ["Thrust : weight", fmt(tw,2), "×"],
+    ["Hover thrust", fmt(hoverThrottle,0), "%"],
+    ["Pitch attitude", fmt(r.th*180/Math.PI,1), "°"],
+    ["Pack C-rate", `${fmt(cRate,1)} of ${S.cRating}`, "C"],
+    ["Usable energy", fmt(b.eUse*r.sag,0), "Wh"],
+    ["Payload limit", fmt(payloadMax,0), "g"],
+    ["Rotor spacing", fmt(b.sD,2), "s/D"],
+    ["Tip clearance", fmt(b.tipGap,0), "mm"]
+  ].map(([k,v,u])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}<span class="u">${u}</span></div></div>`).join("");
+
+  // budget bar
+  const segs=[["Induced","var(--s1)",r.eInd],["Profile","var(--s2)",r.eProf],
+              ["Parasite","var(--s3)",r.ePar+Math.max(r.eClimb,0)],["Avionics + I²R","var(--s4)",r.overhead]];
+  $("ptot").textContent = fmt(r.total,0)+" W";
+
+  // §2 power calculation — one matrix, every phase of the flight, all derived
+  const eta = (S.etaMotor/100)*(S.etaEsc/100);
+  const becLoss = b.p5v/(S.etaBec/100) - b.p5v;
+  const cols = [P.pClimb, P.pCruise, P.pStat, P.pDesc];
+  const cell = (f,d=1)=>cols.map(c=>`<td class="n">${fmt(f(c),d)}</td>`).join("");
+  const rows = [
+    ["grp2","Rotor shaft power","what the propellers actually need", null, null],
+    ["sub","Induced","accelerating air downward", c=>c.eInd*eta, "var(--s1)"],
+    ["sub","Profile","blade drag at rotor RPM", c=>c.eProf*eta, "var(--s2)"],
+    ["sub","Parasite","pushing the airframe through air", c=>c.ePar*eta, "var(--s3)"],
+    ["sub","Climb / descent","raising or lowering the aircraft", c=>c.eClimb*eta, null],
+    ["grp2","Drivetrain loss",`motor ${S.etaMotor}% × ESC ${S.etaEsc}%`, c=>c.pProp-(c.eInd+c.eProf+c.ePar+c.eClimb)*eta, null],
+    ["grp2","Avionics — main bus","telemetry, gimbal, actuator", ()=>b.pMain, "var(--s4)"],
+    ["","Avionics — 5 V rail","FC, receiver, camera, SBC", ()=>b.p5v, "var(--s4)"],
+    ["","BEC conversion loss",`${S.etaBec}% efficient — the worksheet assumes 100%`, ()=>becLoss, "var(--s4)"],
+    ["","Pack internal resistance",`${S.rInt} mΩ heating the cells`, c=>c.irLoss, "var(--s4)"],
+    ["grp2","Thrust required","√(W² + drag²) — not a free choice", c=>c.T, null],
+    ["","Thrust used","share of what the motors can make", c=>100*c.T/(S.tMax*S.nRotors/1000*G), null]
+  ];
+  $("powerrows").innerHTML = rows.map(([cls,term,where,f,c])=>
+    `<tr class="${cls}"><td class="term">${c?`<i class="sw" style="background:${c}"></i>`:""}${term}</td>`
+    +`<td class="where">${where}</td>`
+    +(f===null?`<td colspan="4"></td>`:cell(f, term==="Thrust used"?0:1))+`</tr>`).join("");
+  $("pcClimb").textContent  = fmt(P.pClimb.total,0);
+  $("pcCruise").textContent = fmt(P.pCruise.total,0);
+  $("pcStat").textContent   = fmt(P.pStat.total,0);
+  $("pcDesc").textContent   = fmt(P.pDesc.total,0);
+  $("pcnote").textContent   = `${fmt(b.mass*1000,0)} g AUW · cruise at ${fmt(S.airspeed,1)} m/s · station in ${fmt(P.w.vAgl,1)} m/s wind`;
+
+  // §4 mission profile
+  const shown = P.phases.filter(p=>p.t>0.005);
+  $("phaserows").innerHTML = shown.map(p=>{
+    const e = p.p*p.t/60;
+    return `<tr><td class="term"><i class="sw" style="background:${PHC[p.k]}"></i>${p.name}</td>`
+      +`<td class="where">${PHW[p.k]}</td><td class="n">${fmt(p.tas,1)}</td><td class="n">${fmt(p.p,0)}</td>`
+      +`<td class="n">${fmt(p.t,1)}</td><td class="n">${fmt(e,1)}</td>`
+      +`<td class="n" style="color:var(--ink-3);font-weight:500">${fmt(100*e/b.packWh,1)}%</td></tr>`;
+  }).join("");
+  $("phTime").textContent   = fmt(P.tTotal,1);
+  $("phEnergy").textContent = fmt(P.eTotal,1);
+  $("phPct").textContent    = fmt(100*P.eTotal/b.packWh,1)+"%";
+  $("profnote").textContent = P.feasible
+    ? `${fmt(P.tTotal,1)} min airborne · ${fmt(P.radiusKm,2)} km radius`
+    : `station time exceeds the battery`;
+  drawProfile(b, P);
+  $("bar").innerHTML = segs.map(([n,c,v])=>`<span style="background:${c};flex:${Math.max(v,0.001)}" title="${n}"></span>`).join("");
+  $("blegend").innerHTML = segs.map(([n,c,v])=>
+    `<div class="bl"><i style="background:${c}"></i>${n}<b>${fmt(v,0)} W</b></div>`).join("");
+
+  // flags
+  const flags=[];
+  if(tw < 1.8) flags.push(["critical","Thrust margin",`T:W is <b>${fmt(tw,2)}</b>. Below 1.8 there is no authority left for wind or a failed motor. A hexacopter should also hold ≥1.0 with one motor out.`]);
+  else if(tw < 2.2) flags.push(["caution","Thrust margin",`T:W is <b>${fmt(tw,2)}</b> — flyable but tight. 2.0–2.5 is the usual target for a camera platform.`]);
+  else flags.push(["ok","Thrust margin",`T:W <b>${fmt(tw,2)}</b>, hovering at <b>${fmt(hoverThrottle,0)}%</b> of static thrust.`]);
+  if(b.tipGap < 0) flags.push(["critical","Rotor overlap",
+    `Discs overlap by <b>${fmt(-b.tipGap,0)} mm</b> at s/D <b>${fmt(b.sD,2)}</b>. ${S.propDia}″ props will not fit this ${fmt(S.wheelbase,0)} mm frame.`]);
+  else if(b.sD < 1.25) flags.push(["caution","Rotor spacing",
+    `s/D is <b>${fmt(b.sD,2)}</b> — only <b>${fmt(b.tipGap,0)} mm</b> between disc edges. Hexacopter test data puts peak hover efficiency near s/D 1.6; this close, adjacent rotors ingest each other's wake and figure of merit drops. It is a good reason to keep FM at the pessimistic end.`]);
+  if(escA > 40*0.8) flags.push(["caution","ESC headroom",`<b>${fmt(escA,1)} A</b> per motor in this condition against a 40 A rating. Full-throttle current will be several times this.`]);
+  if(cRate > S.cRating) flags.push(["critical","Discharge rate",`<b>${fmt(cRate,1)} C</b> demanded against a <b>${S.cRating} C</b> pack — the continuous rating is exceeded, so usable energy is derated to ${fmt(100*r.sag,0)}% and the pack will run hot.`]);
+  else if(cRate > 0.7*S.cRating) flags.push(["caution","Discharge rate",`<b>${fmt(cRate,1)} C</b> of a ${S.cRating} C pack — nearing the continuous limit. Sag will exceed what the ${S.packDerate}% derate assumes.`]);
+  if(S.reserve === 0) flags.push(["caution","No reserve",`Reserve is 0 — the headline figure is time to a fully-depleted usable window, with nothing held back for the approach.`]);
+  if(S.dod > 85) flags.push(["critical","Depth of discharge",`<b>${S.dod}%</b> depth will shorten pack life sharply and risks cell reversal under load.`]);
+  if(S.airspeed>0 && S.airspeed < be.V) flags.push(["ok","Speed",`Flying below the ${fmt(be.V,1)} m/s minimum-power speed — climbing to it would <em>add</em> ${fmt(be.tMin-r.tMin,1)} min.`]);
+  if(b.rho < 1.15) flags.push(["caution","Density altitude",`Air density is <b>${fmt(b.rho,3)} kg/m³</b> (${fmt((1-b.rho/1.225)*100,0)}% below sea-level ISA). Induced power scales with 1/√ρ.`]);
+  $("flags").innerHTML = flags.map(([s,t,d])=>`<div class="flag ${s}"><span class="chip">${s==="ok"?"pass":s}</span><span><b>${t}.</b> ${d}</span></div>`).join("");
+
+  $("chartnote").textContent = `min power at ${fmt(be.V,1)} m/s · best range at ${fmt(br.V,1)} m/s`;
+  drawMain(sw, be, br, r);
+  drawBattery(b);
+  drawPayload(payloadMax);
+
+  // wind & site block in the right rail
+  const w = windSolve();
+  const still = w.vAgl < 0.05;
+  $("windnote").textContent = windMeta.source==="live"
+    ? `live · ${windMeta.at} UTC` : "manual entry";
+  $("wderived").innerHTML = [
+    ["Wind at "+fmt(S.agl,0)+" m", fmt(w.vAgl,1), "m/s", false],
+    [w.head>=0?"Headwind":"Tailwind", fmt(Math.abs(w.head),1), "m/s", true],
+    ["Crosswind", fmt(Math.abs(w.cross),1), "m/s", false],
+    ["Ground speed", fmt(r.vg,1), "m/s", false],
+    ["Range this leg", fmt(r.rangeKm,2), "km", true],
+    [windMeta.gust!=null?"Gusting to":"Air temp",
+     windMeta.gust!=null?fmt(windMeta.gust,1):fmt(S.oat,0),
+     windMeta.gust!=null?"m/s":"°C", false]
+  ].map(([k,v,u,hi])=>`<div class="wd${hi?" hi":""}"><div class="k">${k}</div><div class="v">${v}<span class="u">${u}</span></div></div>`).join("");
+  $("rosecap").innerHTML = still
+    ? `Still air. Set a wind speed, or fetch it live, to see what the site is doing to your range.`
+    : `Wind from <b>${fmt(S.windDir,0)}°</b> · track <b>${fmt(S.track,0)}°</b> · ${fmt(Math.abs(((S.windDir-S.track)%360+540)%360-180),0)}° off the nose`;
+  if(!still && Math.abs(w.cross) > 6)
+    $("rosecap").innerHTML += `<br><span style="color:var(--caution)">crosswind ${fmt(Math.abs(w.cross),1)} m/s — the aircraft will crab to hold track</span>`;
+  $("rosecap").innerHTML += `<br><span style="opacity:.75">drag the rose to set the flight track</span>`;
+  drawRose(false);
+}
+
+/* ---------------- charts ---------------- */
+const AX = "var(--rule-2)", GRID="var(--rule)", INK="var(--ink)", INK2="var(--ink-2)", INK3="var(--ink-3)";
+function svgEl(t,a){const e=document.createElementNS("http://www.w3.org/2000/svg",t);
+  for(const k in a) e.setAttribute(k,a[k]); return e;}
+function ticks(max,n=5){const raw=max/n, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=raw)||10*mag;
+  const out=[]; for(let v=0; v<=max*1.0001; v+=step) out.push(v); return out;}
+
+function drawMain(sw, be, br, cur){
+  const svg=$("chart1"), W=svg.clientWidth||760, H=330;
+  const M={t:14,r:16,b:36,l:56};
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.innerHTML="";
+  const pw=W-M.l-M.r, ph=H-M.t-M.b;
+  const vmax=sw[sw.length-1].V;
+  const pmax=Math.max(...sw.map(d=>d.total))*1.08;
+  const X=v=>M.l+pw*v/vmax, Y=p=>M.t+ph*(1-p/pmax);
+
+  for(const t of ticks(pmax,5)){
+    svg.appendChild(svgEl("line",{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),stroke:GRID,"stroke-width":1}));
+    svg.appendChild(svgEl("text",{x:M.l-9,y:Y(t)+4,"text-anchor":"end",fill:INK3,
+      "font-family":"var(--mono)","font-size":10.5})).textContent=t.toFixed(0);
+  }
+  svg.appendChild(svgEl("text",{x:M.l-9,y:M.t-2,"text-anchor":"end",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5,"letter-spacing":.8})).textContent="W";
+  for(const t of ticks(vmax,6)){
+    svg.appendChild(svgEl("text",{x:X(t),y:H-16,"text-anchor":"middle",fill:INK3,
+      "font-family":"var(--mono)","font-size":10.5})).textContent=t.toFixed(0);
+  }
+  svg.appendChild(svgEl("text",{x:M.l+pw/2,y:H-2,"text-anchor":"middle",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5,"letter-spacing":1})).textContent="TRUE AIRSPEED  m/s";
+
+  const keys=[["eInd","var(--s1)","Induced"],["eProf","var(--s2)","Profile"],
+              ["ePar","var(--s3)","Parasite"],["overhead","var(--s4)","Avionics + I²R"]];
+  const base=sw.map(()=>0);
+  const bands=[];
+  for(const [k,c,label] of keys){
+    const top = sw.map((d,i)=>base[i] + Math.max(d[k],0) + (k==="ePar"?Math.max(d.eClimb,0):0));
+    // trace the top edge left-to-right, then back along the base
+    let path=`M ${X(sw[0].V)} ${Y(top[0])}`;
+    sw.forEach((d,i)=>{ if(i) path+=` L ${X(d.V)} ${Y(top[i])}`; });
+    for(let i=sw.length-1;i>=0;i--) path+=` L ${X(sw[i].V)} ${Y(base[i])}`;
+    path+=" Z";
+    svg.appendChild(svgEl("path",{d:path,fill:c,"fill-opacity":.88,stroke:"var(--surface)","stroke-width":2,"stroke-linejoin":"round"}));
+    bands.push({label,c,top:[...top],base:[...base]});
+    for(let i=0;i<base.length;i++) base[i]=top[i];
+  }
+  // total line
+  let tl=`M ${X(sw[0].V)} ${Y(sw[0].total)}`;
+  sw.forEach((d,i)=>{ if(i) tl+=` L ${X(d.V)} ${Y(d.total)}`; });
+  svg.appendChild(svgEl("path",{d:tl,fill:"none",stroke:INK,"stroke-width":2,"stroke-linejoin":"round"}));
+
+  // direct labels inside widest part of each band
+  bands.forEach(bd=>{
+    let bi=0,bw=0;
+    for(let i=Math.floor(sw.length*0.12);i<sw.length*0.9;i++){
+      const w=bd.top[i]-bd.base[i]; if(w>bw){bw=w;bi=i;}
+    }
+    if(Y(bd.base[bi])-Y(bd.top[bi]) < 19) return;   // band too thin to hold a label legibly
+    const t=svgEl("text",{x:X(sw[bi].V),y:(Y(bd.top[bi])+Y(bd.base[bi]))/2+3.5,"text-anchor":"middle",
+      fill:"#fff","font-family":"var(--mono)","font-size":10.5,"font-weight":600,
+      "paint-order":"stroke","stroke":bd.c,"stroke-width":3.5,"stroke-linejoin":"round"});
+    t.textContent=bd.label; svg.appendChild(t);
+  });
+
+  // markers
+  for(const [d,lab,dash] of [[be,"MIN POWER","3 3"],[br,"BEST RANGE","3 3"]]){
+    svg.appendChild(svgEl("line",{x1:X(d.V),x2:X(d.V),y1:M.t,y2:M.t+ph,stroke:INK2,"stroke-width":1,"stroke-dasharray":dash,"stroke-opacity":.65}));
+    const t=svgEl("text",{x:X(d.V)+5,y:M.t+11,fill:INK2,"font-family":"var(--mono)","font-size":9.5,"letter-spacing":.6,
+      "paint-order":"stroke",stroke:"var(--surface)","stroke-width":3.5});
+    t.textContent=lab; svg.appendChild(t);
+  }
+  // current condition
+  svg.appendChild(svgEl("line",{x1:X(cur.V),x2:X(cur.V),y1:M.t,y2:M.t+ph,stroke:"var(--accent)","stroke-width":2,"stroke-opacity":.85}));
+  svg.appendChild(svgEl("circle",{cx:X(cur.V),cy:Y(cur.total),r:5,fill:"var(--accent)",stroke:"var(--surface)","stroke-width":2}));
+
+  $("legend1").innerHTML = keys.map(([k,c,l])=>`<span class="cli"><i style="background:${c}"></i>${l}</span>`).join("")
+    + `<span class="cli"><i style="background:${INK};height:2px;border-radius:1px"></i>Total pack draw</span>`;
+
+  // hover
+  const tip=$("tip1"), box=svg.parentElement;
+  const hit=svgEl("rect",{x:M.l,y:M.t,width:pw,height:ph,fill:"transparent"});
+  svg.appendChild(hit);
+  const onMove=ev=>{
+    const rect=svg.getBoundingClientRect();
+    const px=(ev.clientX-rect.left)*(W/rect.width);
+    const v=clamp((px-M.l)/pw*vmax,0,vmax);
+    const d=sw[Math.round(v/vmax*(sw.length-1))];
+    tip.classList.add("on");
+    tip.innerHTML=`<div class="th">${d.V.toFixed(1)} m/s · ${(d.V*3.6).toFixed(0)} km/h</div>`+
+      keys.map(([k,c,l])=>`<div class="tr"><i style="background:${c}"></i><span>${l}</span><b>${fmt(k==="ePar"?d.ePar+Math.max(d.eClimb,0):d[k],0)} W</b></div>`).join("")+
+      `<div class="tr" style="border-top:1px solid var(--rule);margin-top:5px;padding-top:5px"><span>Total</span><b>${fmt(d.total,0)} W</b></div>`+
+      `<div class="tr"><span>Endurance</span><b>${fmt(d.tMin,1)} min</b></div>`;
+    const bx=box.getBoundingClientRect();
+    let lx=ev.clientX-bx.left+14;
+    if(lx+180>bx.width) lx=ev.clientX-bx.left-194;
+    tip.style.left=lx+"px"; tip.style.top=Math.max(4,ev.clientY-bx.top-40)+"px";
+  };
+  hit.addEventListener("mousemove",onMove);
+  hit.addEventListener("mouseleave",()=>tip.classList.remove("on"));
+}
+
+function drawBattery(b){
+  const svg=$("chart4"), W=svg.clientWidth||760, H=230, M={t:16,r:16,b:38,l:52};
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.innerHTML="";
+  const pw=W-M.l-M.r, ph=H-M.t-M.b;
+  const capMax=Math.max(45, S.capAh*2.2), pts=[];
+  const saveCap=S.capAh;
+  for(let i=0;i<=110;i++){
+    S.capAh = 1 + (capMax-1)*i/110;
+    const bb=base(); const r=solve(bb, S.airspeed);
+    pts.push({cap:S.capAh, t:r.tMin, m:bb.mass, tw:(S.tMax*S.nRotors/1000)/bb.mass});
+  }
+  S.capAh=saveCap;
+  const ymax=Math.max(...pts.map(p=>p.t))*1.12;
+  const X=c=>M.l+pw*(c-1)/(capMax-1), Y=t=>M.t+ph*(1-t/ymax);
+  for(const t of ticks(ymax,4)){
+    svg.appendChild(svgEl("line",{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),stroke:GRID,"stroke-width":1}));
+    svg.appendChild(svgEl("text",{x:M.l-8,y:Y(t)+3.5,"text-anchor":"end",fill:INK3,
+      "font-family":"var(--mono)","font-size":10})).textContent=t.toFixed(0);
+  }
+  svg.appendChild(svgEl("text",{x:M.l-8,y:M.t-3,"text-anchor":"end",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5})).textContent="min";
+  for(let c=5;c<=capMax;c+=5)
+    svg.appendChild(svgEl("text",{x:X(c),y:H-16,"text-anchor":"middle",fill:INK3,
+      "font-family":"var(--mono)","font-size":10})).textContent=c;
+  svg.appendChild(svgEl("text",{x:M.l+pw/2,y:H-2,"text-anchor":"middle",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5,"letter-spacing":1})).textContent="PACK CAPACITY  Ah";
+
+  // the constraint that actually binds: thrust margin, long before the endurance peak
+  const twLimit = pts.find(p=>p.tw<2.0);
+  if(twLimit){
+    svg.appendChild(svgEl("rect",{x:X(twLimit.cap),y:M.t,width:Math.max(W-M.r-X(twLimit.cap),0),height:ph,
+      fill:"var(--critical)","fill-opacity":.07}));
+    svg.appendChild(svgEl("line",{x1:X(twLimit.cap),x2:X(twLimit.cap),y1:M.t,y2:M.t+ph,
+      stroke:"var(--critical)","stroke-width":1.5,"stroke-dasharray":"4 3","stroke-opacity":.75}));
+    // sits at the foot of the plot so it cannot collide with the peak callout above
+    const wl=svgEl("text",{x:X(twLimit.cap)+6,y:M.t+ph-7,fill:"var(--critical)","font-family":"var(--mono)",
+      "font-size":9.5,"letter-spacing":.5,"paint-order":"stroke",stroke:"var(--surface)","stroke-width":3.5});
+    wl.textContent=`T:W < 2.0 beyond ${fmt(twLimit.cap,0)} Ah — too heavy to fly safely`;
+    if(X(twLimit.cap)+250>W){ wl.setAttribute("text-anchor","end"); wl.setAttribute("x",X(twLimit.cap)-6); }
+    svg.appendChild(wl);
+  }
+
+  let area=`M ${X(1)} ${Y(0)}`;
+  pts.forEach(p=>area+=` L ${X(p.cap)} ${Y(p.t)}`);
+  area+=` L ${X(capMax)} ${Y(0)} Z`;
+  svg.appendChild(svgEl("path",{d:area,fill:"var(--accent)","fill-opacity":.10}));
+  let ln=`M ${X(pts[0].cap)} ${Y(pts[0].t)}`;
+  pts.forEach((p,i)=>{ if(i) ln+=` L ${X(p.cap)} ${Y(p.t)}`; });
+  svg.appendChild(svgEl("path",{d:ln,fill:"none",stroke:"var(--accent)","stroke-width":2,"stroke-linejoin":"round"}));
+
+  const best=pts.reduce((a,p)=>p.t>a.t?p:a);
+  svg.appendChild(svgEl("line",{x1:X(best.cap),x2:X(best.cap),y1:M.t,y2:M.t+ph,stroke:INK2,"stroke-width":1,"stroke-dasharray":"3 3","stroke-opacity":.7}));
+  svg.appendChild(svgEl("circle",{cx:X(best.cap),cy:Y(best.t),r:5,fill:"var(--accent)",stroke:"var(--surface)","stroke-width":2}));
+  const lab=svgEl("text",{x:X(best.cap)+7,y:Y(best.t)-9,fill:INK,"font-family":"var(--mono)","font-size":11,"font-weight":600,
+    "paint-order":"stroke",stroke:"var(--surface)","stroke-width":3.5});
+  lab.textContent=`peak ${fmt(best.t,1)} min @ ${fmt(best.cap,0)} Ah — but ${fmt(best.m,1)} kg AUW`;
+  if(X(best.cap)+260>W) {lab.setAttribute("text-anchor","end"); lab.setAttribute("x",X(best.cap)-7);}
+  svg.appendChild(lab);
+
+  const ci=pts.reduce((a,p,i)=>Math.abs(p.cap-S.capAh)<Math.abs(pts[a].cap-S.capAh)?i:a,0);
+  svg.appendChild(svgEl("circle",{cx:X(pts[ci].cap),cy:Y(pts[ci].t),r:4,fill:"var(--surface)",stroke:"var(--accent)","stroke-width":2.5}));
+  const cl=svgEl("text",{x:X(pts[ci].cap),y:Y(pts[ci].t)+20,"text-anchor":"middle",fill:INK2,
+    "font-family":"var(--mono)","font-size":10,"paint-order":"stroke",stroke:"var(--surface)","stroke-width":3.5});
+  cl.textContent=`current ${fmt(S.capAh,1)} Ah`;
+  svg.appendChild(cl);
+}
+
+const PHC={climb:"var(--s2)",out:"var(--s1)",stat:"var(--s3)",back:"var(--s1)",desc:"var(--s4)"};
+const PHW={climb:"vertical, into your own downwash",out:"transit at cruise airspeed",
+  stat:"holding a point — airspeed equals the wind",back:"same power, different ground speed",
+  desc:"partial energy recovery only"};
+
+/* Altitude and battery share one time axis — two stacked panels, never two y-scales
+   on one chart. Phase bands line up vertically between them. */
+function drawProfile(b, P){
+  const tT = Math.max(P.tTotal, 0.1);
+  const marks=[]; let acc=0;
+  for(const p of P.phases){ if(p.t>0.005){ marks.push({...p, t0:acc, t1:acc+p.t}); acc+=p.t; } }
+
+  // --- altitude ---
+  let svg=$("chartAlt"); let W=svg.clientWidth||760, H=150, M={t:14,r:16,b:16,l:52};
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.innerHTML="";
+  let pw=W-M.l-M.r, ph=H-M.t-M.b;
+  const X=t=>M.l+pw*t/tT, YA=a=>M.t+ph*(1-a/Math.max(S.agl,1));
+  for(const m of marks){
+    svg.appendChild(svgEl("rect",{x:X(m.t0),y:M.t,width:Math.max(X(m.t1)-X(m.t0),0),height:ph,
+      fill:PHC[m.k],"fill-opacity":.09}));
+    if(X(m.t1)-X(m.t0)>52){
+      const tx=svgEl("text",{x:(X(m.t0)+X(m.t1))/2,y:M.t+11,"text-anchor":"middle",fill:INK2,
+        "font-family":"var(--mono)","font-size":9.5,"letter-spacing":.5});
+      tx.textContent=m.name.toUpperCase(); svg.appendChild(tx);
+    }
+  }
+  svg.appendChild(svgEl("line",{x1:M.l,x2:W-M.r,y1:YA(S.agl),y2:YA(S.agl),stroke:GRID,"stroke-width":1,"stroke-dasharray":"3 3"}));
+  svg.appendChild(svgEl("text",{x:M.l-8,y:YA(S.agl)+4,"text-anchor":"end",fill:INK3,
+    "font-family":"var(--mono)","font-size":10})).textContent=fmt(S.agl,0);
+  svg.appendChild(svgEl("text",{x:M.l-8,y:YA(0)+4,"text-anchor":"end",fill:INK3,
+    "font-family":"var(--mono)","font-size":10})).textContent="0";
+  svg.appendChild(svgEl("text",{x:M.l-8,y:M.t-2,"text-anchor":"end",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5})).textContent="m AGL";
+  let d=`M ${X(0)} ${YA(0)}`;
+  for(const m of marks) d+=` L ${X(m.t0)} ${YA(m.alt[0])} L ${X(m.t1)} ${YA(m.alt[1])}`;
+  svg.appendChild(svgEl("path",{d:d+` L ${X(tT)} ${YA(0)} Z`,fill:"var(--accent)","fill-opacity":.10}));
+  svg.appendChild(svgEl("path",{d,fill:"none",stroke:"var(--accent)","stroke-width":2,"stroke-linejoin":"round"}));
+
+  // --- battery remaining, same x scale ---
+  svg=$("chartSoc"); W=svg.clientWidth||760; H=185; M={t:14,r:16,b:38,l:52};
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.innerHTML="";
+  pw=W-M.l-M.r; ph=H-M.t-M.b;
+  const YS=p=>M.t+ph*(1-p/100);
+  const reservePct = 100 - S.dod + S.reserve;      // pack % you intend to land with
+  svg.appendChild(svgEl("rect",{x:M.l,y:YS(reservePct),width:pw,height:Math.max(YS(0)-YS(reservePct),0),
+    fill:"var(--critical)","fill-opacity":.08}));
+  svg.appendChild(svgEl("line",{x1:M.l,x2:W-M.r,y1:YS(reservePct),y2:YS(reservePct),
+    stroke:"var(--critical)","stroke-width":1.2,"stroke-dasharray":"4 3","stroke-opacity":.8}));
+  const rl=svgEl("text",{x:W-M.r-4,y:YS(reservePct)+13,"text-anchor":"end",fill:"var(--critical)",
+    "font-family":"var(--mono)","font-size":9.5,"paint-order":"stroke",stroke:"var(--surface)","stroke-width":3.5});
+  rl.textContent=`reserve floor ${fmt(reservePct,0)}%`; svg.appendChild(rl);
+  for(const t of [0,25,50,75,100]){
+    svg.appendChild(svgEl("line",{x1:M.l,x2:W-M.r,y1:YS(t),y2:YS(t),stroke:GRID,"stroke-width":1}));
+    svg.appendChild(svgEl("text",{x:M.l-8,y:YS(t)+3.5,"text-anchor":"end",fill:INK3,
+      "font-family":"var(--mono)","font-size":10})).textContent=t;
+  }
+  svg.appendChild(svgEl("text",{x:M.l-8,y:M.t-2,"text-anchor":"end",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5})).textContent="pack %";
+  for(const m of marks)
+    svg.appendChild(svgEl("rect",{x:X(m.t0),y:M.t,width:Math.max(X(m.t1)-X(m.t0),0),height:ph,
+      fill:PHC[m.k],"fill-opacity":.09}));
+  let soc=100, dd=`M ${X(0)} ${YS(100)}`;
+  for(const m of marks){ soc -= 100*(m.p*m.t/60)/b.packWh; dd+=` L ${X(m.t1)} ${YS(Math.max(soc,0))}`; }
+  svg.appendChild(svgEl("path",{d:dd,fill:"none",stroke:"var(--accent)","stroke-width":2.5,"stroke-linejoin":"round"}));
+  svg.appendChild(svgEl("circle",{cx:X(tT),cy:YS(Math.max(soc,0)),r:5,fill:"var(--accent)",stroke:"var(--surface)","stroke-width":2}));
+  const el=svgEl("text",{x:X(tT)-8,y:YS(Math.max(soc,0))-10,"text-anchor":"end",fill:INK,
+    "font-family":"var(--mono)","font-size":11,"font-weight":600,"paint-order":"stroke",stroke:"var(--surface)","stroke-width":3.5});
+  el.textContent=`lands at ${fmt(Math.max(soc,0),0)}%`; svg.appendChild(el);
+  for(const t of ticks(tT,6))
+    svg.appendChild(svgEl("text",{x:X(t),y:H-16,"text-anchor":"middle",fill:INK3,
+      "font-family":"var(--mono)","font-size":10})).textContent=t.toFixed(0);
+  svg.appendChild(svgEl("text",{x:M.l+pw/2,y:H-2,"text-anchor":"middle",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5,"letter-spacing":1})).textContent="MINUTES FROM TAKEOFF";
+}
+
+function drawPayload(payloadMax){
+  const svg=$("chart5"), W=svg.clientWidth||760, H=230, M={t:16,r:16,b:38,l:52};
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.innerHTML="";
+  const pw=W-M.l-M.r, ph=H-M.t-M.b;
+  const pmax=Math.max(payloadMax*1.45, S.payload*1.3, 500);
+  const save=S.payload, pts=[];
+  for(let i=0;i<=100;i++){
+    S.payload = pmax*i/100;
+    const bb=base(); const r=solve(bb, S.airspeed);
+    pts.push({p:S.payload, t:Math.max(r.tMin,0), tw:(S.tMax*S.nRotors/1000)/bb.mass});
+  }
+  S.payload=save;
+  const ymax=Math.max(...pts.map(p=>p.t))*1.12 || 1;
+  const X=p=>M.l+pw*p/pmax, Y=t=>M.t+ph*(1-t/ymax);
+
+  for(const t of ticks(ymax,4)){
+    svg.appendChild(svgEl("line",{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),stroke:GRID,"stroke-width":1}));
+    svg.appendChild(svgEl("text",{x:M.l-8,y:Y(t)+3.5,"text-anchor":"end",fill:INK3,
+      "font-family":"var(--mono)","font-size":10})).textContent=t.toFixed(0);
+  }
+  svg.appendChild(svgEl("text",{x:M.l-8,y:M.t-3,"text-anchor":"end",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5})).textContent="min";
+  for(const t of ticks(pmax,6))
+    svg.appendChild(svgEl("text",{x:X(t),y:H-16,"text-anchor":"middle",fill:INK3,
+      "font-family":"var(--mono)","font-size":10})).textContent=t.toFixed(0);
+  svg.appendChild(svgEl("text",{x:M.l+pw/2,y:H-2,"text-anchor":"middle",fill:INK3,
+    "font-family":"var(--mono)","font-size":9.5,"letter-spacing":1})).textContent="PAYLOAD  g";
+
+  // thrust-margin wall
+  if(payloadMax<pmax){
+    svg.appendChild(svgEl("rect",{x:X(payloadMax),y:M.t,width:Math.max(W-M.r-X(payloadMax),0),height:ph,
+      fill:"var(--critical)","fill-opacity":.07}));
+    svg.appendChild(svgEl("line",{x1:X(payloadMax),x2:X(payloadMax),y1:M.t,y2:M.t+ph,
+      stroke:"var(--critical)","stroke-width":1.5,"stroke-dasharray":"4 3","stroke-opacity":.75}));
+    const wl=svgEl("text",{x:X(payloadMax)+6,y:M.t+ph-7,fill:"var(--critical)","font-family":"var(--mono)",
+      "font-size":9.5,"letter-spacing":.5,"paint-order":"stroke",stroke:"var(--surface)","stroke-width":3.5});
+    wl.textContent=`T:W < 2.0 beyond ${fmt(payloadMax,0)} g`;
+    if(X(payloadMax)+190>W){ wl.setAttribute("text-anchor","end"); wl.setAttribute("x",X(payloadMax)-6); }
+    svg.appendChild(wl);
+  }
+
+  let area=`M ${X(0)} ${Y(0)}`;
+  pts.forEach(p=>area+=` L ${X(p.p)} ${Y(p.t)}`);
+  area+=` L ${X(pmax)} ${Y(0)} Z`;
+  svg.appendChild(svgEl("path",{d:area,fill:"var(--accent)","fill-opacity":.10}));
+  let ln=`M ${X(pts[0].p)} ${Y(pts[0].t)}`;
+  pts.forEach((p,i)=>{ if(i) ln+=` L ${X(p.p)} ${Y(p.t)}`; });
+  svg.appendChild(svgEl("path",{d:ln,fill:"none",stroke:"var(--accent)","stroke-width":2,"stroke-linejoin":"round"}));
+
+  const ci=pts.reduce((a,p,i)=>Math.abs(p.p-S.payload)<Math.abs(pts[a].p-S.payload)?i:a,0);
+  svg.appendChild(svgEl("line",{x1:X(pts[ci].p),x2:X(pts[ci].p),y1:Y(pts[ci].t),y2:M.t+ph,
+    stroke:"var(--accent)","stroke-width":1,"stroke-dasharray":"3 3","stroke-opacity":.7}));
+  svg.appendChild(svgEl("circle",{cx:X(pts[ci].p),cy:Y(pts[ci].t),r:5,fill:"var(--accent)",stroke:"var(--surface)","stroke-width":2}));
+  const cl=svgEl("text",{x:X(pts[ci].p)+8,y:Y(pts[ci].t)-9,fill:INK,"font-family":"var(--mono)","font-size":11,
+    "font-weight":600,"paint-order":"stroke",stroke:"var(--surface)","stroke-width":3.5});
+  cl.textContent=`${fmt(S.payload,0)} g → ${fmt(pts[ci].t,1)} min`;
+  if(X(pts[ci].p)+150>W){ cl.setAttribute("text-anchor","end"); cl.setAttribute("x",X(pts[ci].p)-8); }
+  svg.appendChild(cl);
+
+  const zero=pts[0].t, half=pts.find(p=>p.t<=zero/2);
+  $("paynote").textContent = `${fmt(zero,1)} min empty · ${fmt(payloadMax,0)} g before T:W 2.0`
+    + (half?` · halves at ${fmt(half.p,0)} g`:"");
+}
+
+/* ---------------- live wind ---------------- */
+/* Open-Meteo needs no key. It works when this file is opened directly from disk;
+   inside a published Artifact the CSP blocks every external host, so the fetch
+   is expected to fail there and we fall back to manual entry. */
+async function fetchWind(){
+  const btn=$("fetchwind"), st=$("wstat");
+  btn.disabled=true; st.className="wstat"; st.textContent="Contacting Open-Meteo…";
+  render();
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}`
+    +`&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&wind_speed_unit=ms`;
+  try{
+    const res=await fetch(url,{mode:"cors"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const j=await res.json();
+    const c=j&&j.current;
+    if(!c||typeof c.wind_speed_10m!=="number") throw new Error("unexpected response shape");
+    S.windSpd=c.wind_speed_10m; S.windDir=c.wind_direction_10m;
+    if(typeof c.temperature_2m==="number") S.oat=c.temperature_2m;
+    windMeta={source:"live", at:c.time, gust:c.wind_gusts_10m, temp:c.temperature_2m};
+    st.className="wstat good";
+    st.textContent=`Live · ${c.time} UTC · gusting ${fmt(c.wind_gusts_10m,1)} m/s · ${fmt(j.latitude,3)}, ${fmt(j.longitude,3)}`;
+    render();
+  }catch(err){
+    // fall back to manual so the fields never sit locked on stale numbers
+    windMeta={source:"manual", at:null, gust:null, temp:null};
+    S.liveWx=0;
+    st.className="wstat bad";
+    st.textContent="Could not reach Open-Meteo — a published page may not call external hosts. "
+      +"Switched back to manual entry; open flight-time-model.html from disk for live weather.";
+    render();
+  }
+}
+
+/* ---------------- animated wind rose ---------------- */
+const rose={particles:[],raf:null,t:0,tR:0};
+function initRose(){
+  const c=$("rose"); if(!c) return;
+  for(let i=0;i<170;i++) rose.particles.push({x:Math.random(),y:Math.random(),a:Math.random()});
+  const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const loop=()=>{ drawRose(!reduced); if(!reduced) rose.raf=requestAnimationFrame(loop); };
+  loop();
+  if(reduced) addEventListener("resize",()=>drawRose(false));
+  const setHeading=ev=>{
+    const rect=c.getBoundingClientRect();
+    const x=(ev.clientX-rect.left)*c.width/rect.width, y=(ev.clientY-rect.top)*c.height/rect.height;
+    const bearing=(Math.atan2(x-c.width/2, y-c.height/2)*180/Math.PI+360)%360;
+    S.track=Math.round(bearing);
+    render();
+  };
+  c.style.cursor="crosshair";
+  c.addEventListener("pointerdown",ev=>{ setHeading(ev); c.setPointerCapture(ev.pointerId); });
+  c.addEventListener("pointermove",ev=>{ if(ev.buttons) setHeading(ev); });
+}
+function drawRose(animate){
+  const c=$("rose"); if(!c) return;
+  const ctx=c.getContext("2d"), D=c.width, R=D/2, cx=R, cy=R;
+  const css=getComputedStyle(document.documentElement);
+  const col=n=>css.getPropertyValue(n).trim()||"#888";
+  const ink=col("--ink"), ink2=col("--ink-2"), ink3=col("--ink-3"),
+        rule=col("--rule-2"), accent=col("--accent"), s3=col("--s3"), crit=col("--critical");
+  const w=windSolve();
+  ctx.clearRect(0,0,D,D);
+
+  // wind travels TOWARD (windDir + 180); screen y grows downward, 0deg = up = north
+  const toRad=d=>(d-90)*Math.PI/180;
+  const flowA=toRad(S.windDir+180);
+  const speed=Math.min(w.vAgl,25);
+  const ringR=R*0.80;
+
+  // particle field, clipped to the compass disc
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,ringR,0,7); ctx.clip();
+  ctx.strokeStyle=s3; ctx.lineCap="round";
+  const step=(speed*0.0016+0.0006);
+  for(const p of rose.particles){
+    if(animate){
+      p.x+=Math.cos(flowA)*step; p.y+=Math.sin(flowA)*step; p.a-=0.006;
+      if(p.a<=0||p.x<-.15||p.x>1.15||p.y<-.15||p.y>1.15){
+        p.a=1; p.x=Math.random(); p.y=Math.random();
+      }
+    }
+    const px=p.x*D, py=p.y*D, len=6+speed*1.7;
+    ctx.globalAlpha=Math.max(0,Math.min(p.a,1))*(speed>0.05?0.55:0.10);
+    ctx.lineWidth=2.2;
+    ctx.beginPath(); ctx.moveTo(px,py);
+    ctx.lineTo(px-Math.cos(flowA)*len, py-Math.sin(flowA)*len); ctx.stroke();
+  }
+  ctx.restore(); ctx.globalAlpha=1;
+
+  // compass ring + cardinals
+  ctx.strokeStyle=rule; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,cy,ringR,0,7); ctx.stroke();
+  ctx.lineWidth=1.5;
+  for(let d=0;d<360;d+=30){
+    const a=toRad(d), r0=d%90===0?ringR-16:ringR-9;
+    ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*ringR,cy+Math.sin(a)*ringR);
+    ctx.lineTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0); ctx.stroke();
+  }
+  ctx.fillStyle=ink3; ctx.font="600 26px ui-monospace,Consolas,monospace";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  [["N",0],["E",90],["S",180],["W",270]].forEach(([t,d])=>{
+    const a=toRad(d); ctx.fillText(t, cx+Math.cos(a)*(ringR-34), cy+Math.sin(a)*(ringR-34));
+  });
+
+  // wind barb — points the way the wind is going
+  if(w.vAgl>0.05){
+    const a=flowA, L=ringR*0.62;
+    ctx.strokeStyle=s3; ctx.fillStyle=s3; ctx.lineWidth=7; ctx.lineCap="round";
+    ctx.beginPath();
+    ctx.moveTo(cx-Math.cos(a)*L, cy-Math.sin(a)*L);
+    ctx.lineTo(cx+Math.cos(a)*L*0.72, cy+Math.sin(a)*L*0.72); ctx.stroke();
+    const hx=cx+Math.cos(a)*L, hy=cy+Math.sin(a)*L;
+    ctx.beginPath();
+    ctx.moveTo(hx,hy);
+    ctx.lineTo(hx-Math.cos(a-0.42)*30, hy-Math.sin(a-0.42)*30);
+    ctx.lineTo(hx-Math.cos(a+0.42)*30, hy-Math.sin(a+0.42)*30);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // flight track — dashed, with the aircraft travelling along it at ground speed
+  const ta=toRad(S.track), TL=ringR*0.86;
+  const vg=Math.max(S.airspeed-w.head,0);
+  if(animate){
+    rose.t += vg>0.05 ? 0.25+vg*0.14 : 0;
+    rose.tR += 0.6+S.airspeed*0.30;
+  }
+  ctx.strokeStyle=accent; ctx.lineWidth=5; ctx.setLineDash([13,9]);
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ta)*TL, cy+Math.sin(ta)*TL); ctx.stroke();
+  ctx.setLineDash([]);
+  const f=0.5-0.5*Math.cos(rose.t);
+  const dx=cx+Math.cos(ta)*TL*f, dy=cy+Math.sin(ta)*TL*f;
+  ctx.save(); ctx.translate(dx,dy); ctx.rotate(ta+Math.PI/2);
+  ctx.fillStyle=accent;
+  ctx.beginPath(); ctx.moveTo(0,-17); ctx.lineTo(12,13); ctx.lineTo(0,6); ctx.lineTo(-12,13);
+  ctx.closePath(); ctx.fill();
+  // six spinning rotor discs — rotor speed follows airspeed
+  const spin=rose.tR;
+  ctx.strokeStyle=accent; ctx.globalAlpha=.55; ctx.lineWidth=2.5;
+  for(let i=0;i<6;i++){
+    const ra=(i*60+spin)*Math.PI/180;
+    ctx.beginPath(); ctx.arc(Math.cos(ra)*17, Math.sin(ra)*17, 6, 0, 7); ctx.stroke();
+  }
+  ctx.globalAlpha=1; ctx.restore();
+
+  // centre hub
+  ctx.fillStyle=ink; ctx.beginPath(); ctx.arc(cx,cy,6,0,7); ctx.fill();
+
+  // headwind / tailwind flag at the top
+  const head=w.head;
+  ctx.font="600 24px ui-monospace,Consolas,monospace";
+  ctx.fillStyle = Math.abs(head)<0.1 ? ink3 : (head>0 ? crit : col("--good"));
+  ctx.fillText(Math.abs(head)<0.1 ? "CALM ALONG TRACK"
+    : `${fmt(Math.abs(head),1)} m/s ${head>0?"HEADWIND":"TAILWIND"}`, cx, D-16);
+}
+
+/* ---------------- audit + method copy ---------------- */
+
+/* ---------------- audit + method copy ---------------- */
+function buildAudit(){
+  const b0 = base();
+  const hov = solve(b0, 0);
+  const F=[
+    ["confirm","The 430 W motor figure is sound","",
+     `<p>Before the criticisms: the worksheet's headline propulsion number holds up. Momentum theory gives an ideal hover induced power of <b>${fmt(b0.pIdeal,0)} W</b> for ${fmt(b0.mass,2)} kg on ${S.nRotors}&nbsp;×&nbsp;${S.propDia}″ discs. Divide by a figure of merit of 0.60 and a 0.78 drivetrain, and you get <b>${fmt(hov.pProp,0)} W</b> — within a couple of percent of the 430 W typed into the sheet. Whoever picked that number picked it well.</p>
+      <div class="num">ideal <b>${fmt(b0.pIdeal,0)} W</b> ÷ FM 0.60 ÷ η 0.78 = <b>${fmt(hov.pProp,0)} W</b> &nbsp;vs&nbsp; sheet <b>430 W</b></div>`],
+
+    ["material","Weight and power are not connected","",
+     `<p>This is the structural failure, and everything else is small beside it. Mass and power live in two independent columns. Motor current is frozen at 3.25 A no matter what the drone weighs — so doubling the battery doubles the energy while the power draw does not move, and the sheet reports endurance climbing without limit.</p>
+      <p>Physically, hover power scales as mass<sup>1.5</sup>, so the returns on capacity diminish sharply: for this airframe the step from 10 to 15 Ah buys about 3.9 minutes, 20 to 25 Ah buys 1.4, and 30 to 35 Ah buys under half a minute while adding 650 g. §5 above draws that curve, and marks where thrust margin — not endurance — becomes the binding constraint. A worksheet that shows a straight line here cannot be used to size a battery, which is the main thing you would want a worksheet for.</p>`],
+
+    ["material","No airspeed anywhere","",
+     `<p>Every number in the sheet is a hover number. But a multirotor in forward flight is <em>cheaper</em> than one in hover: the rotors stop recirculating their own downwash and start meeting undisturbed air, so induced power falls roughly as 1/V once you are moving. Parasite drag climbs as V³ and eventually wins, which is what puts the bucket in the §3 curve.</p>
+      <p>For this airframe the minimum-power speed lands near 10 m/s, and flying there instead of hovering buys several minutes. The sheet's 22.3 min is not the endurance of this drone — it is the endurance of this drone standing still, which is its worst case.</p>`],
+
+    ["material","100% depth of discharge is not a real column","",
+     `<p>The left-hand block computes 222 Wh and 27.88 min at full pack. You cannot fly a LiPo to 0% — you would destroy it, and the last volt is unreachable under load anyway. The 80% column is the only one worth keeping, and even it is optimistic: nameplate Wh is measured at a gentle discharge, so a rate-and-sag derate of 3–5% belongs on top, plus a landing reserve.</p>
+      <div class="num">sheet <b>22.30 min</b> → with derate + ${S.reserve} pt reserve: <b>${fmt(hov.tMin,1)} min</b> planning endurance in hover</div>`],
+
+    ["moderate","The 5 V rail is billed at 100% efficiency","",
+     `<p>The Jetson, the Pixhawk and the receiver are all 5 V loads totalling <b>${fmt(b0.p5v,2)} W</b>, but they draw from a ${fmt(b0.packV,1)} V pack through a BEC that is perhaps 85–90% efficient. The sheet adds the 5 V watts straight into the total, so the converter loss vanishes.</p>
+      <div class="num">${fmt(b0.p5v,2)} W at 5 V ÷ ${S.etaBec}% = <b>${fmt(b0.p5v/(S.etaBec/100),2)} W</b> from the pack &nbsp;·&nbsp; +${fmt(b0.p5v/(S.etaBec/100)-b0.p5v,2)} W unbilled</div>`],
+
+    ["moderate","Pack internal resistance is missing","",
+     `<p>At <b>${fmt(hov.total/b0.packV,1)} A</b> through roughly ${S.rInt} mΩ of pack, <b>${fmt(hov.irLoss,1)} W</b> is dissipated as heat inside the cells. That energy is counted in the nameplate Wh but never reaches the propellers.</p>`],
+
+    ["minor","The Power column is typed, not computed","",
+     `<p>Two cells give it away. The Pixhawk row has 5 V and 0.15 A filled in but its Power cell left blank, so 0.75 W never enters the total. And the motor row reads 430 W where 22.2 × 3.25 × 6 = 432.9 W. Neither error is large; both prove the column is hand-entered, which means the sheet cannot be trusted to update itself when anything changes.</p>
+      <div class="num">stated <b>477.75 W</b> · from the V×I cells as written <b>481.40 W</b> · gap <b>3.65 W</b></div>`],
+
+    ["minor","Zero-power rows that are not zero-power","",
+     `<p>The RPi Camera Module 3 is listed with a dash in the power column; it draws roughly 0.25–1 W when streaming. The linear actuator is also blank — correct as a continuous average only if it never moves. Both want an explicit duty-cycled average rather than a dash.</p>`],
+
+    ["minor","No atmosphere, no wind, no climb","",
+     `<p>Density altitude is absent, so the sheet reports the same endurance at sea level and at 2000 m, where induced power is about 10% higher. Wind is absent too — a drone holding station in an 8 m/s breeze is doing 8 m/s of forward flight and pays for it. Climb is absent: lifting ${fmt(b0.mass,2)} kg at 2 m/s costs an extra ${fmt(b0.W*2,0)} W of shaft power on top of hover.</p>`]
+  ];
+  $("findings").innerHTML = F.map(([sev,title,_,body])=>
+    `<div class="finding"><span class="sev ${sev}">${sev==="confirm"?"holds up":sev}</span>
+      <div><h3>${title}</h3>${body}</div></div>`).join("");
+}
+
+function buildMethod(){
+  $("method").innerHTML = `
+<h3>Chain of reasoning</h3>
+<p>Mass comes from the component table plus the pack; the pack's mass comes from its capacity. That single link — capacity → mass → weight → thrust → power → endurance → back to the capacity you chose — is what the original worksheet is missing, and it is what makes §5 possible.</p>
+
+<h3>Rotor power</h3>
+<p>Hover is momentum theory. The rotor accelerates a column of air; the ideal power is the thrust times the induced velocity it imparts, and the figure of merit accounts for everything a real blade does worse.</p>
+<div class="eq">v_h  = √( W / 2ρA )              induced velocity, hover
+P_id = W · v_h                     ideal induced power
+P_mech = P_id / FM                 real shaft power, hover
+P_ind,h = k · P_id                 k ≈ 1.15  tip loss
+<b>P_prof,h = P_mech − P_ind,h</b>        blade profile power falls out</div>
+
+<p>In forward flight the drone pitches over. Drag sets the pitch angle, the pitch sets how much thrust is needed, and the thrust plus the free stream set the inflow through Glauert's implicit relation — solved here by damped iteration.</p>
+<div class="eq">D = ½ ρ (Cd·A_f) V²                 body drag
+θ = atan(D / W)                    pitch attitude
+T = √(W² + D²)                     thrust now exceeds weight
+<b>v_i = T / (2ρA √(V∥² + (V⊥+v_i)²))</b>   Glauert inflow, iterated
+μ  = V∥ / V_tip                    advance ratio</div>
+
+<p>The three aerodynamic terms then behave quite differently with speed, which is the whole point:</p>
+<div class="eq">P_ind  = k · T · v_i                       <b>falls</b> as ~1/V
+P_prof = P_prof,h (T/W)^1.5 (1 + 4.65 μ²)  <b>creeps up</b>
+P_par  = D · V = ½ρ(Cd·A_f)V³              <b>climbs as V³</b>
+P_climb = W · V_z</div>
+
+<h3>Electrical chain</h3>
+<div class="eq">P_prop = ΣP_shaft / (η_motor · η_esc)
+P_avionics = P_main + P_5V / η_bec
+P_pack = P_prop + P_avionics + I²R    (I = P_pack/V_pack, iterated)</div>
+
+<h3>Endurance</h3>
+<div class="eq">E_pack   = Ah · S · V_cell
+E_usable = E_pack · derate · (DoD − reserve)
+t = E_usable / P_pack          range = (V − headwind) · t</div>
+<p>Endurance depends on true airspeed; range depends on ground speed. That is why a headwind costs range but leaves endurance untouched — and why the two mini-charts in §4 peak at different speeds.</p>
+
+<h3>Where this model is soft</h3>
+<ul>
+  <li><b>Figure of merit is assumed constant.</b> A real prop's FM varies with loading and RPM. Calibrate it against a measured hover current before trusting absolute numbers — 0.60 was chosen here precisely because it reproduces the worksheet's 430 W.</li>
+  <li><b>Frontal area is a guess.</b> Cd·A<sub>f</sub> is the least certain input and it drives the entire high-speed half of the curve. The pitch attitude also grows the projected area, which is not modelled.</li>
+  <li><b>Rotor–rotor interference is not modelled — and on this frame it matters.</b> The Tarot 680 Pro spans 695 mm motor to motor, so on a flat hex the adjacent discs sit 347.5 mm apart while a 1355 prop is 343 mm across: <b>s/D ≈ 1.01</b>, a tip gap of about 4.5 mm. Hexacopter rotor-spacing experiments put peak hover efficiency nearer s/D 1.6, with thrust falling away as spacing closes and the rotors start working in each other's wake. That is a real efficiency penalty this model absorbs into the figure of merit rather than resolving, and it is the main reason FM 0.60 rather than 0.68 is the defensible choice here.</li>
+  <li><b>The battery is a constant-voltage source</b> with a fixed series resistance. A real pack's voltage falls through the flight, so current rises as the pack empties.</li>
+  <li><b>Motor efficiency is constant.</b> It genuinely varies with load and RPM, most sharply at the high-thrust end.</li>
+</ul>
+<h3>On sourcing this to the exact frame</h3>
+<p>Worth saying plainly: <b>there is no published paper that models power or endurance for a Tarot 680.</b> The frame appears in the literature — a structural and finite-element study, control and system-identification work, agricultural survey platforms — but as the airframe a study was <em>flown on</em>, not as the subject of a power model. Nobody has published its figure of merit, its drag polar, or a measured hover-power curve.</p>
+<p>So the model here is built from general multirotor aerodynamics and then anchored to the one measurement your own worksheet already contains: 3.25 A per motor at 22.2 V. FM 0.60 is not taken from a paper — it is the value that makes momentum theory reproduce that measured hover point. That is a stronger foundation than a borrowed constant from a different aircraft, and it is why the §7 audit opens by confirming the 430 W rather than replacing it.</p>
+<p>The one piece of frame-specific physics the literature does supply is rotor spacing, because that is pure geometry: the 695 mm span and 13.5″ props put this aircraft at s/D ≈ 1.01, far inside the spacing where hexacopter rotors begin to interfere. That is a measurable, checkable property of <em>this</em> frame, and it is the reason the figure of merit is held low.</p>
+<p><b>To do better, bench it.</b> One afternoon on a thrust stand — thrust, voltage and current across the throttle range with a 1355 on 6S — would replace FM, hover RPM and max thrust with measured values and cut the uncertainty in this model by more than any paper could.</p>
+<p class="srcs" style="margin-top:18px">Closed-form forward-flight decomposition after <a href="https://arxiv.org/pdf/2209.04128">Modelling Power Consumption for Multi-rotor UAVs (arXiv:2209.04128)</a>; endurance and optimal-speed framing after <a href="https://arxiv.org/pdf/2109.04741">Range, Endurance and Optimal Speed Estimates for Multicopters (arXiv:2109.04741)</a>; drag figures for open vs. faired frames from <a href="https://www.icas.org/ICAS_ARCHIVE/ICAS2020/data/papers/ICAS2020_0781_paper.pdf">Design Optimization of Multirotor Drones in Forward Flight (ICAS 2020)</a>; rotor-spacing effects from <a href="https://journals.sagepub.com/doi/10.1177/0020294019901313">Aerodynamic performance of a Hex-rotor UAV with different rotor spacing (Lei &amp; Cheng, 2020)</a> and <a href="https://www.mdpi.com/2226-4310/12/4/317">Aerodynamic Analysis of a Hexacopter with an Inner Tilted-Rotor Configuration (Aerospace, 2025)</a>; the Tarot 680 as a research platform in <a href="https://www.researchgate.net/publication/351485726_Hexacopter_Design_and_Analysis">Hexacopter Design and Analysis</a> (structural, not power).</p>`;
+}
+
+/* ---------------- init ---------------- */
+// index every numbered section so nothing is buried on a 12-section page
+function buildNav(){
+  const out=[];
+  document.querySelectorAll(".panel").forEach(p=>{
+    const m=p.querySelector(".marker"), h=p.querySelector("h2");
+    if(!m||!h) return;
+    const id="sec-"+m.textContent.replace(/\D/g,"");
+    p.id=id;
+    out.push(`<a href="#${id}"><b>${m.textContent}</b>${h.textContent}</a>`);
+  });
+  $("secnav").innerHTML=out.join("");
+}
+
+buildTable(); buildFields(); buildSliders(); buildMethod(); buildNav();
+$("vslider").addEventListener("input",e=>{ S.airspeed=parseFloat(e.target.value); render(); });
+$("presets").addEventListener("click",e=>{
+  const v=e.target.dataset.v; if(v===undefined) return;
+  S.airspeed=parseFloat(v); $("vslider").value=S.airspeed; render();
+});
+$("fetchwind").addEventListener("click",()=>{ if(S.liveWx) fetchWind(); });
+$("livewx").addEventListener("change",e=>{
+  S.liveWx = e.target.checked ? 1 : 0;
+  if(S.liveWx){ fetchWind(); }
+  else{
+    windMeta={source:"manual", at:null, gust:null, temp:null};
+    $("wstat").className="wstat";
+    $("wstat").textContent="Manual entry — wind and temperature are yours to set.";
+    render();
+  }
+});
+let raf; addEventListener("resize",()=>{ cancelAnimationFrame(raf); raf=requestAnimationFrame(render); });
+new MutationObserver(()=>render()).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+render(); buildAudit(); initRose();
+const heroHexa=$("herohexa");
+if(heroHexa && matchMedia("(prefers-reduced-motion: reduce)").matches)
+  heroHexa.querySelectorAll("svg").forEach(s=>s.pauseAnimations());
+</script>
