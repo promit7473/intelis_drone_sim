@@ -87,12 +87,13 @@ a{color:var(--accent-ink)}
 .hsb-wvA{animation-duration:52s}
 .hsb-wvB{animation-duration:34s}
 .hsb-glint{stroke:var(--accent);stroke-linecap:round;animation:hsbGlint ease-in-out infinite}
-.hsb-drone{animation:hsbFly linear infinite;animation-duration:120s}
+.hsb-trace{fill:none;stroke:var(--accent);stroke-linecap:round;stroke-width:1.8;stroke-opacity:.22;
+  stroke-dasharray:7 13;animation:hsbDash 24s linear infinite}
 .hsb-drone-inner{animation:hsbBob 3.6s ease-in-out infinite}
 @keyframes hsbDrift{to{transform:translateX(-720px)}}
 @keyframes hsbBob{50%{transform:translateY(-5px)}}
 @keyframes hsbGlint{0%,100%{opacity:.05}50%{opacity:.55}}
-@keyframes hsbFly{from{transform:translateX(-280px)}to{transform:translateX(1640px)}}
+@keyframes hsbDash{to{stroke-dashoffset:-60}}
 @media(max-width:640px){.hero-bg{opacity:.55}}
 .mhead-top{position:absolute;top:0;left:0;right:0;z-index:1;display:flex;align-items:center;justify-content:space-between;
   gap:20px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--rule)}
@@ -496,6 +497,7 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
         </radialGradient>
         <path id="hsbWv1" d="M0 0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0 c60,-13.3 180,-13.3 240,0 c60,13.3 180,13.3 240,0"/>
         <path id="hsbWv2" d="M0 0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0 c60,-26.7 180,-26.7 240,0 c60,26.7 180,26.7 240,0"/>
+        <path id="hsbRoute" d="M -60 220 C 130 110, 250 110, 390 210 C 530 310, 640 310, 750 220 C 810 170, 850 170, 900 220 C 930 300, 1000 340, 1080 300 C 1160 260, 1170 140, 1060 100 C 950 60, 860 120, 880 200 C 900 240, 960 250, 1060 220 C 1180 190, 1320 190, 1460 250"/>
         <g id="hsbDroneShape">
           <circle cx="0" cy="0" r="4" fill="var(--accent)"/>
           <g stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round">
@@ -526,9 +528,13 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
       <g transform="translate(0,648)"><use class="hsb-wv hsb-wvB" href="#hsbWv2" stroke-opacity=".2"/></g>
       <g transform="translate(0,758) scale(1,1.6)"><use class="hsb-wv hsb-wvA" href="#hsbWv1" stroke-opacity=".18"/></g>
 
+      <use class="hsb-trace" href="#hsbRoute"/>
       <g class="hsb-drone">
-        <g transform="translate(60,150) scale(1.15)">
+        <g>
           <g class="hsb-drone-inner"><use href="#hsbDroneShape"/></g>
+          <animateMotion dur="72s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#hsbRoute"/>
+          </animateMotion>
         </g>
       </g>
     </svg>
@@ -2094,4 +2100,7 @@ render(); buildAudit(); initRose();
 const heroHexa=$("herohexa");
 if(heroHexa && matchMedia("(prefers-reduced-motion: reduce)").matches)
   heroHexa.querySelectorAll("svg").forEach(s=>s.pauseAnimations());
+const heroBg=document.querySelector(".hero-bg");
+if(heroBg && matchMedia("(prefers-reduced-motion: reduce)").matches)
+  heroBg.querySelectorAll("svg").forEach(s=>s.pauseAnimations());
 </script>
