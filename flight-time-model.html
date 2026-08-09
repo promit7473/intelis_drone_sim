@@ -130,6 +130,7 @@ a{color:var(--accent-ink)}
   background:var(--accent-soft);padding:3px 8px;border-radius:6px;letter-spacing:.06em;flex:none}
 .panel-head .note{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto;letter-spacing:.02em}
 .panel-body{padding:16px 18px}
+.rail > .panel{flex:none}
 
 /* ---------- tabbed sections ---------- */
 .tabgroup{display:flex;flex-direction:column;gap:12px;scroll-margin-top:16px}
@@ -704,6 +705,7 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
     <p class="chartsub">Payload is not free and it is not linear either. Every gram must be held up by the same rotors, and hover power grows as mass<sup>1.5</sup>. The curve is steepest at the left, so the <em>first</em> grams are the expensive ones: on the stock build the first 100 g costs about 0.6 min, while the 100 g after 2 kg costs barely 0.2 — by then there is not much endurance left to lose. The wall on the right is thrust margin, not energy: past it the aircraft still has battery but no longer has the authority to fly safely.</p>
     <div class="chartbox"><svg class="chart" id="chart5" height="230"></svg></div>
   </section>
+  </div>
 
   <!-- ================= AUDIT ================= -->
   <div class="tabpane" id="pane-an-7" role="tabpanel" aria-labelledby="tab-an-7" hidden>
