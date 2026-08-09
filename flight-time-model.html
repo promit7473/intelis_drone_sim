@@ -1075,8 +1075,9 @@ function syncSliderFooters(b, r, payloadMax){
     ? `flight demands <b>${fmt(r.cRate,2)} C</b> against a <b>${S.cRating} C</b> discharge rate — over the rating, so usable energy is derated to <b>${fmt(100*r.sag,0)}%</b>.`
     : `flight demands <b>${fmt(r.cRate,2)} C</b> against a <b>${S.cRating} C</b> discharge rate — inside the rating, no derate.`;
   const w = windSolve();
+  const margin = S.airspeed - Math.abs(w.head);
   $("sf-windSpd").innerHTML = S.windSpd===0 ? `still air · costs range, never endurance`
-    : `<b>${fmt(w.vAgl,1)} m/s</b> at ${fmt(S.agl,0)} m AGL · ground speed <b>${fmt(r.vg,1)} m/s</b>`;
+    : `<b>${fmt(w.vAgl,1)} m/s</b> at ${fmt(S.agl,0)} m AGL · ground speed <b>${fmt(r.vg,1)} m/s</b> · return margin <b${margin<=0?' class="warnx"':""}>${fmt(margin,1)} m/s</b>`;
   $("sf-track").innerHTML = S.windSpd===0
     ? `still air — the flight track has no effect until a wind speed is set`
     : `${w.head>=0?"head":"tail"}wind <b>${fmt(Math.abs(w.head),1)}</b> · cross <b>${fmt(Math.abs(w.cross),1)} m/s</b> · range <b>${fmt(r.rangeKm,2)} km</b>`;
@@ -1234,6 +1235,8 @@ function render(){
   if(escA > 40*0.8) flags.push(["caution","ESC headroom",`<b>${fmt(escA,1)} A</b> per motor in this condition against a 40 A rating. Full-throttle current will be several times this.`]);
   if(cRate > S.cRating) flags.push(["critical","Discharge rate",`<b>${fmt(cRate,1)} C</b> demanded against a <b>${S.cRating} C</b> pack — the continuous rating is exceeded, so usable energy is derated to ${fmt(100*r.sag,0)}% and the pack will run hot.`]);
   else if(cRate > 0.7*S.cRating) flags.push(["caution","Discharge rate",`<b>${fmt(cRate,1)} C</b> of a ${S.cRating} C pack — nearing the continuous limit. Sag will exceed what the ${S.packDerate}% derate assumes.`]);
+  if(S.windSpd>0 && S.airspeed - Math.abs(windSolve().head) <= 0)
+    flags.push(["critical","Cannot return",`The wind at ${fmt(S.agl,0)} m AGL (<b>${fmt(windSolve().vAgl,1)} m/s</b>) meets or exceeds your <b>${fmt(S.airspeed,1)} m/s</b> airspeed on this track — the outbound leg cannot be reversed, so round-trip reach is zero on this heading. Track crosswind or fly faster.`]);
   if(S.reserve === 0) flags.push(["caution","No reserve",`Reserve is 0 — the headline figure is time to a fully-depleted usable window, with nothing held back for the approach.`]);
   if(S.dod > 85) flags.push(["critical","Depth of discharge",`<b>${S.dod}%</b> depth will shorten pack life sharply and risks cell reversal under load.`]);
   if(S.airspeed>0 && S.airspeed < be.V) flags.push(["ok","Speed",`Flying below the ${fmt(be.V,1)} m/s minimum-power speed — climbing to it would <em>add</em> ${fmt(be.tMin-r.tMin,1)} min.`]);
