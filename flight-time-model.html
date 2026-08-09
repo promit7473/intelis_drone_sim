@@ -72,6 +72,11 @@ a{color:var(--accent-ink)}
 .docmeta{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;
   color:var(--ink-3);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .docmeta .dot{width:4px;height:4px;border-radius:50%;background:var(--accent);flex:none}
+.themebtn{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-2);background:var(--surface);border:1px solid var(--rule-2);border-radius:3px;
+  padding:6px 11px;cursor:pointer;white-space:nowrap;transition:border-color .15s,color .15s,background .15s}
+.themebtn:hover{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+.themebtn:active{transform:translateY(1px)}
 .pagefoot{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule-2);display:flex;
   align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .pagefoot .brandname{font-size:13px}
@@ -387,6 +392,13 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
 .srcs a:hover{color:var(--accent-ink)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
+<script>
+(function(){try{
+  var t=localStorage.getItem("intelis-theme");
+  if(!t) t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";
+  document.documentElement.dataset.theme=t;
+}catch(e){}})();
+</script>
 
 <div class="wrap">
 
@@ -409,6 +421,7 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
       </div>
     </div>
     <div class="docmeta"><span>TAROT 680 Hexacopter</span><span class="dot"></span><span>Power &amp; Endurance Audit</span><span class="dot"></span><span>Rev A</span></div>
+    <button class="themebtn" id="themetoggle" type="button" aria-label="Switch colour theme"></button>
   </div>
   <div class="herohexa" id="herohexa" aria-hidden="true">
     <svg viewBox="0 0 300 110" focusable="false">
@@ -1849,6 +1862,17 @@ $("livewx").addEventListener("change",e=>{
 });
 let raf; addEventListener("resize",()=>{ cancelAnimationFrame(raf); raf=requestAnimationFrame(render); });
 new MutationObserver(()=>render()).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+(function(){
+  const btn=$("themetoggle"), root=document.documentElement;
+  const sync=()=>{ const dark=root.dataset.theme!=="light";
+    if(btn){ btn.textContent=dark?"Light":"Dark"; btn.setAttribute("aria-pressed",String(dark)); } };
+  if(btn) btn.addEventListener("click",()=>{
+    root.dataset.theme = root.dataset.theme==="light" ? "dark" : "light";
+    try{ localStorage.setItem("intelis-theme", root.dataset.theme); }catch(e){}
+    sync();
+  });
+  sync();
+})();
 render(); buildAudit(); initRose();
 const heroHexa=$("herohexa");
 if(heroHexa && matchMedia("(prefers-reduced-motion: reduce)").matches)
