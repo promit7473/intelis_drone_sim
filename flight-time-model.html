@@ -122,13 +122,27 @@ a{color:var(--accent-ink)}
 @media(max-width:1080px){.rail{position:static;order:-1;max-height:none;overflow:visible}}
 
 /* ---------- panel ---------- */
-.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;box-shadow:var(--shadow)}
-.panel-head{display:flex;align-items:baseline;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.panel-head{display:flex;align-items:baseline;gap:12px;padding:16px 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
+  background:linear-gradient(180deg,var(--surface-2),var(--surface) 88%)}
 .panel-head h2{font-size:14.5px;letter-spacing:-.005em}
 .marker{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent-ink);
-  background:var(--accent-soft);padding:3px 7px;border-radius:3px;letter-spacing:.06em;flex:none}
+  background:var(--accent-soft);padding:3px 8px;border-radius:6px;letter-spacing:.06em;flex:none}
 .panel-head .note{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto;letter-spacing:.02em}
 .panel-body{padding:16px 18px}
+
+/* ---------- tabbed sections ---------- */
+.tabgroup{display:flex;flex-direction:column;gap:12px;scroll-margin-top:16px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-2);background:var(--surface-2);border:1px solid var(--rule);border-radius:999px;
+  padding:7px 13px;cursor:pointer;transition:background .18s,color .18s,border-color .18s,transform .12s}
+.tab:hover{color:var(--ink);background:var(--surface-3);border-color:var(--rule-2)}
+.tab:active{transform:translateY(1px)}
+.tab.is-active{color:var(--accent-ink);background:var(--accent-soft);border-color:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabpane{display:block;min-width:0}
+.tabpane[hidden]{display:none}
 
 /* ---------- fields ---------- */
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px 16px}
@@ -503,6 +517,13 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
   <!-- ================= LEFT: PARAMETERS ================= -->
   <div class="stack">
 
+    <div class="tabgroup" id="tgin">
+      <div class="tabs" role="tablist" aria-label="Model inputs">
+        <button type="button" class="tab is-active" id="tab-in-1" role="tab" aria-selected="true" aria-controls="pane-in-1" data-pane="pane-in-1">§1 Airframe &amp; avionics</button>
+        <button type="button" class="tab" id="tab-in-2" role="tab" aria-selected="false" aria-controls="pane-in-2" data-pane="pane-in-2">§2 Power calculation</button>
+      </div>
+
+      <div class="tabpane" id="pane-in-1" role="tabpanel" aria-labelledby="tab-in-1">
     <section class="panel">
       <div class="panel-head"><span class="marker">§1</span><h2>Airframe &amp; avionics</h2>
         <span class="note">shaded cells are derived</span></div>
@@ -530,7 +551,9 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
         </div>
       </div>
     </section>
+      </div>
 
+      <div class="tabpane" id="pane-in-2" role="tabpanel" aria-labelledby="tab-in-2" hidden>
     <section class="panel">
       <div class="panel-head"><span class="marker">§2</span><h2>Estimated power calculation</h2>
         <span class="note" id="pcnote">at the condition set on the right</span></div>
@@ -556,6 +579,8 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
 
       <div class="flags" id="flags"></div>
     </section>
+      </div>
+    </div>
 
   </div>
 
@@ -622,6 +647,17 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
 <!-- ================= CHARTS ================= -->
 <div class="stack" style="margin-top:22px">
 
+  <div class="tabgroup" id="tgan">
+    <div class="tabs" role="tablist" aria-label="Analysis">
+      <button type="button" class="tab is-active" id="tab-an-3" role="tab" aria-selected="true" aria-controls="pane-an-3" data-pane="pane-an-3">§3 Power vs airspeed</button>
+      <button type="button" class="tab" id="tab-an-4" role="tab" aria-selected="false" aria-controls="pane-an-4" data-pane="pane-an-4">§4 Mission profile</button>
+      <button type="button" class="tab" id="tab-an-5" role="tab" aria-selected="false" aria-controls="pane-an-5" data-pane="pane-an-5">§5 Battery trade</button>
+      <button type="button" class="tab" id="tab-an-6" role="tab" aria-selected="false" aria-controls="pane-an-6" data-pane="pane-an-6">§6 Payload cost</button>
+      <button type="button" class="tab" id="tab-an-7" role="tab" aria-selected="false" aria-controls="pane-an-7" data-pane="pane-an-7">§7 Audit</button>
+      <button type="button" class="tab" id="tab-an-8" role="tab" aria-selected="false" aria-controls="pane-an-8" data-pane="pane-an-8">§8 The model</button>
+    </div>
+
+  <div class="tabpane" id="pane-an-3" role="tabpanel" aria-labelledby="tab-an-3">
   <section class="panel">
     <div class="panel-head"><span class="marker">§3</span><h2>Power against airspeed</h2>
       <span class="note" id="chartnote"></span></div>
@@ -629,7 +665,9 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
     <div class="cl" id="legend1"></div>
     <div class="chartbox"><svg class="chart" id="chart1" height="330"></svg><div class="tip" id="tip1"></div></div>
   </section>
+  </div>
 
+  <div class="tabpane" id="pane-an-4" role="tabpanel" aria-labelledby="tab-an-4" hidden>
   <section class="panel">
     <div class="panel-head"><span class="marker">§4</span><h2>Mission profile — takeoff to landing</h2>
       <span class="note" id="profnote"></span></div>
@@ -648,14 +686,18 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
       </div>
     </div>
   </section>
+  </div>
 
+  <div class="tabpane" id="pane-an-5" role="tabpanel" aria-labelledby="tab-an-5" hidden>
   <section class="panel">
     <div class="panel-head"><span class="marker">§5</span><h2>The battery trade the worksheet cannot see</h2>
       <span class="note">pack mass linked to capacity</span></div>
     <p class="chartsub">A bigger pack carries more energy and more weight. The worksheet holds motor current at 3.25 A regardless of mass, so it shows endurance rising in a straight line with capacity. With the feedback restored the curve bends over hard: the first 5 Ah past the fitted pack buys about 4 minutes, the next 5 buys 2, and past 30 Ah you are adding kilograms for seconds. The mathematical peak does exist, but it sits at an all-up mass this airframe cannot lift — the thrust margin runs out first, which is the constraint that should actually size the pack.</p>
     <div class="chartbox"><svg class="chart" id="chart4" height="230"></svg><div class="tip" id="tip4"></div></div>
   </section>
+  </div>
 
+  <div class="tabpane" id="pane-an-6" role="tabpanel" aria-labelledby="tab-an-6" hidden>
   <section class="panel">
     <div class="panel-head"><span class="marker">§6</span><h2>What payload costs</h2>
       <span class="note" id="paynote"></span></div>
@@ -664,16 +706,21 @@ code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1
   </section>
 
   <!-- ================= AUDIT ================= -->
+  <div class="tabpane" id="pane-an-7" role="tabpanel" aria-labelledby="tab-an-7" hidden>
   <section class="panel">
     <div class="panel-head"><span class="marker">§7</span><h2>Audit of the original worksheet</h2>
       <span class="note">9 findings</span></div>
     <div id="findings"></div>
   </section>
+  </div>
 
+  <div class="tabpane" id="pane-an-8" role="tabpanel" aria-labelledby="tab-an-8" hidden>
   <section class="panel">
     <div class="panel-head"><span class="marker">§8</span><h2>The model</h2></div>
     <div class="panel-body prose" id="method"></div>
   </section>
+  </div>
+  </div>
 
   <footer class="pagefoot">
     <div class="brand">
@@ -1853,20 +1900,56 @@ t = E_usable / P_pack          range = (V − headwind) · t</div>
 }
 
 /* ---------------- init ---------------- */
-// index every numbered section so nothing is buried on a 12-section page
+// tabbed sections: inputs (§1–§2) and analysis (§3–§8)
+function initTabs(){
+  document.querySelectorAll(".tabs").forEach(bar=>{
+    bar.addEventListener("click", e=>{
+      const t=e.target.closest(".tab"); if(!t) return;
+      activateTab(t);
+    });
+    bar.addEventListener("keydown", e=>{
+      if(e.key!=="ArrowLeft" && e.key!=="ArrowRight") return;
+      const tabs=[...bar.querySelectorAll(".tab")], i=tabs.indexOf(document.activeElement);
+      if(i<0) return;
+      e.preventDefault();
+      const j=(i+(e.key==="ArrowRight"?1:-1)+tabs.length)%tabs.length;
+      tabs[j].focus(); activateTab(tabs[j]);
+    });
+  });
+}
+function activateTab(tab){
+  const bar=tab.closest(".tabs"), group=bar.closest(".tabgroup");
+  bar.querySelectorAll(".tab").forEach(b=>{
+    const on=b===tab;
+    b.classList.toggle("is-active",on);
+    b.setAttribute("aria-selected",String(on));
+    b.tabIndex=on?0:-1;
+  });
+  group.querySelectorAll(".tabpane").forEach(p=>{ p.hidden = p.id!==tab.dataset.pane; });
+  render();
+}
+function goTab(paneId){
+  const tab=document.querySelector(`.tab[data-pane="${paneId}"]`);
+  if(!tab) return;
+  activateTab(tab);
+  tab.closest(".tabgroup").scrollIntoView({behavior:"smooth",block:"start"});
+}
+// jump links in the masthead drive the tabs instead of anchors
 function buildNav(){
   const out=[];
-  document.querySelectorAll(".panel").forEach(p=>{
-    const m=p.querySelector(".marker"), h=p.querySelector("h2");
-    if(!m||!h) return;
-    const id="sec-"+m.textContent.replace(/\D/g,"");
-    p.id=id;
-    out.push(`<a href="#${id}"><b>${m.textContent}</b>${h.textContent}</a>`);
+  document.querySelectorAll(".tabs").forEach(bar=>{
+    bar.querySelectorAll(".tab").forEach(t=>{
+      out.push(`<a href="#" data-tab="${t.dataset.pane}"><b>${t.textContent.replace(/\s+/g," ").trim()}</b></a>`);
+    });
   });
   $("secnav").innerHTML=out.join("");
+  $("secnav").addEventListener("click", e=>{
+    const a=e.target.closest("[data-tab]"); if(!a) return;
+    e.preventDefault(); goTab(a.dataset.tab);
+  });
 }
 
-buildTable(); buildFields(); buildSliders(); buildMethod(); buildNav();
+buildTable(); buildFields(); buildSliders(); buildMethod(); initTabs(); buildNav();
 $("vslider").addEventListener("input",e=>{ S.airspeed=parseFloat(e.target.value); render(); });
 $("presets").addEventListener("click",e=>{
   const v=e.target.dataset.v; if(v===undefined) return;
